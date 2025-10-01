@@ -12,7 +12,7 @@ export default function Home() {
       icon: "➕",
       title: t("home.create"),
       description: t("home.create.desc"),
-      color: "bg-blue-600 hover:bg-blue-700",
+      color: "bg-orange-600 hover:bg-orange-700",
     },
     {
       href: "/edit",

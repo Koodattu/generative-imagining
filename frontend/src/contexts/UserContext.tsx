@@ -23,26 +23,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setError(null);
 
       // Check for existing GUID in cookies
-      const existingGuid = cookieManager.getUserGuid();
+      let existingGuid = cookieManager.getUserGuid();
 
-      let userData: User;
-
-      if (existingGuid) {
-        // Try to verify existing GUID
-        try {
-          userData = await userApi.verifyUser(existingGuid);
-        } catch {
-          // If verification fails, identify user (will create new or find by IP)
-          userData = await userApi.identifyUser();
-          cookieManager.setUserGuid(userData.guid);
-        }
-      } else {
-        // No existing GUID, identify user
-        userData = await userApi.identifyUser();
-        cookieManager.setUserGuid(userData.guid);
+      // If no GUID exists, generate a new one
+      if (!existingGuid) {
+        // Generate a new GUID client-side
+        existingGuid = crypto.randomUUID();
+        cookieManager.setUserGuid(existingGuid);
       }
 
-      setUser(userData);
+      // Verify the GUID with the backend (or create user if it doesn't exist)
+      try {
+        const userData = await userApi.verifyUser(existingGuid);
+        setUser(userData);
+      } catch {
+        // If verification fails, try to identify/create user with this GUID
+        try {
+          const userData = await userApi.identifyUser(existingGuid);
+          setUser(userData);
+        } catch (createError) {
+          // If both fail, generate a completely new GUID and try again
+          const newGuid = crypto.randomUUID();
+          cookieManager.setUserGuid(newGuid);
+          const userData = await userApi.identifyUser(newGuid);
+          setUser(userData);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to initialize user");
       console.error("User initialization error:", err);

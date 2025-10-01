@@ -60,7 +60,6 @@ class UserIdentify(BaseModel):
 
 class UserResponse(BaseModel):
     guid: str
-    ip: str
 
 class ImageGenerate(BaseModel):
     prompt: str
@@ -88,13 +87,6 @@ class ImageResponse(BaseModel):
     updated_at: datetime
 
 # Helper functions
-def get_client_ip(request: Request) -> str:
-    """Extract client IP from request"""
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    return request.client.host
-
 async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify admin authentication"""
     if credentials.credentials != ADMIN_PASSWORD:
@@ -228,42 +220,32 @@ async def root():
 
 # User Management Endpoints
 @app.get("/api/user/identify")
-async def identify_user(request: Request, data: UserIdentify = None):
-    """Get or create user by IP and optional GUID"""
-    client_ip = get_client_ip(request)
-
-    # If GUID provided, verify it exists for this IP
+async def identify_user(data: UserIdentify = None):
+    """Get or create user by GUID"""
+    # If GUID provided, verify it exists
     if data and data.guid:
-        user = await users_collection.find_one({"guid": data.guid, "ip": client_ip})
+        user = await users_collection.find_one({"guid": data.guid})
         if user:
-            return UserResponse(guid=user["guid"], ip=user["ip"])
+            return UserResponse(guid=user["guid"])
 
-    # Check for existing user by IP
-    existing_user = await users_collection.find_one({"ip": client_ip})
-    if existing_user:
-        return UserResponse(guid=existing_user["guid"], ip=existing_user["ip"])
-
-    # Create new user
+    # Create new user with new GUID
     new_guid = str(uuid.uuid4())
     new_user = {
         "guid": new_guid,
-        "ip": client_ip,
         "created_at": datetime.utcnow()
     }
 
     await users_collection.insert_one(new_user)
-    return UserResponse(guid=new_guid, ip=client_ip)
+    return UserResponse(guid=new_guid)
 
 @app.post("/api/user/verify")
-async def verify_user(request: Request, data: UserIdentify):
+async def verify_user(data: UserIdentify):
     """Verify GUID for existing user"""
-    client_ip = get_client_ip(request)
-
-    user = await users_collection.find_one({"guid": data.guid, "ip": client_ip})
+    user = await users_collection.find_one({"guid": data.guid})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return UserResponse(guid=user["guid"], ip=user["ip"])
+    return UserResponse(guid=user["guid"])
 
 # Image Operations Endpoints
 @app.post("/api/images/generate")

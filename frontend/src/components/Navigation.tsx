@@ -37,12 +37,18 @@ export default function Navigation() {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
 
+                // Define colors for each section
+                let activeColor = "bg-blue-600";
+                if (item.href === "/create") activeColor = "bg-orange-600";
+                else if (item.href === "/edit") activeColor = "bg-purple-600";
+                else if (item.href === "/gallery") activeColor = "bg-green-600";
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`flex items-center space-x-2 px-4 py-2 rounded text-sm font-medium transition-colors ${
-                      isActive ? "bg-blue-600 text-white" : "text-gray-300 hover:text-white hover:bg-[#3a3a3a]"
+                      isActive ? `${activeColor} text-white` : "text-gray-300 hover:text-white hover:bg-[#3a3a3a]"
                     }`}
                   >
                     <Icon size={18} />
@@ -62,12 +68,26 @@ export default function Navigation() {
             const Icon = item.icon;
             const isActive = pathname === item.href;
 
+            // Define colors for each section
+            let activeColor = "orange";
+            let bgColor = "bg-orange-600";
+            if (item.href === "/create") {
+              activeColor = "orange";
+              bgColor = "bg-orange-600";
+            } else if (item.href === "/edit") {
+              activeColor = "purple";
+              bgColor = "bg-purple-600";
+            } else if (item.href === "/gallery") {
+              activeColor = "green";
+              bgColor = "bg-green-600";
+            }
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`flex flex-col items-center justify-center flex-1 py-2 px-2 rounded-lg mx-1 transition-all ${
-                  isActive ? "bg-blue-600/20 text-blue-400 scale-105" : "text-gray-400 hover:text-gray-200 hover:bg-[#3a3a3a] active:scale-95"
+                  isActive ? `${bgColor} text-${activeColor}-400 scale-105` : "text-gray-400 hover:text-gray-200 hover:bg-[#3a3a3a] active:scale-95"
                 }`}
               >
                 <Icon size={24} strokeWidth={isActive ? 2.5 : 2} className="mb-1" />

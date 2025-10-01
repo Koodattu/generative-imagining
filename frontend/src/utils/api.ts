@@ -14,7 +14,6 @@ const api = axios.create({
 // Types
 export interface User {
   guid: string;
-  ip: string;
 }
 
 export interface ImageData {
