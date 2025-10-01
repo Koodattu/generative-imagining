@@ -18,6 +18,7 @@ export default function EditImagePage() {
   const [userImages, setUserImages] = useState<ImageDataType[]>([]);
   const [editPrompt, setEditPrompt] = useState("");
   const [editSuggestions, setEditSuggestions] = useState<string[]>([]);
+  const [keyword, setKeyword] = useState("");
   const [loadingStates, setLoadingStates] = useState<{
     loadingImages: boolean;
     loadingSuggestions: boolean;
@@ -51,30 +52,10 @@ export default function EditImagePage() {
   }, [user]);
 
   useEffect(() => {
-    const loadSuggestions = async (image: ImageDataType) => {
-      setLoadingState("loadingSuggestions", true);
-      try {
-        const result = await aiApi.suggestEdits(image.id);
-        setEditSuggestions(result.suggestions);
-      } catch (error) {
-        console.error("Error loading edit suggestions:", error);
-        setEditSuggestions([
-          "Add warm lighting effects",
-          "Change the color palette to cooler tones",
-          "Add background elements",
-          "Enhance details and textures",
-          "Create a different mood or atmosphere",
-        ]);
-      } finally {
-        setLoadingState("loadingSuggestions", false);
-      }
-    };
-
     if (imageId && userImages.length > 0) {
       const image = userImages.find((img) => img.id === imageId);
       if (image) {
         setSelectedImage(image);
-        loadSuggestions(image);
       }
     }
   }, [imageId, userImages]);
@@ -87,7 +68,23 @@ export default function EditImagePage() {
     setSelectedImage(image);
     setEditedImage(null);
     setEditPrompt("");
-    // Edit suggestions will be loaded by useEffect when selectedImage changes
+    setEditSuggestions([]);
+    setKeyword("");
+  };
+
+  const handleGetSuggestions = async () => {
+    if (!selectedImage) return;
+
+    setLoadingState("loadingSuggestions", true);
+    try {
+      const result = await aiApi.suggestEdits(selectedImage.id, keyword || undefined);
+      setEditSuggestions(result.suggestions);
+    } catch (error) {
+      console.error("Error loading edit suggestions:", error);
+      setEditSuggestions(["Add warm lighting", "Make it cooler", "Add more details"]);
+    } finally {
+      setLoadingState("loadingSuggestions", false);
+    }
   };
 
   const handleUseSuggestion = (suggestion: string) => {
@@ -175,14 +172,14 @@ export default function EditImagePage() {
 
       {/* Edit Interface */}
       {selectedImage && (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-6">
           {/* Original Image */}
-          <div className="bg-[#2a2a2a] rounded-lg p-6">
+          <div>
             <h3 className="text-lg font-semibold text-gray-200 mb-4">{t("edit.original")}</h3>
-            <div className="relative aspect-square bg-[#1a1a1a] rounded overflow-hidden mb-4">
+            <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden mb-4">
               <Image src={imagesApi.getImageUrl(selectedImage.id)} alt={selectedImage.description} fill className="object-cover" unoptimized />
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="text-center text-sm">
               <p className="text-gray-400">
                 <strong className="text-gray-300">{t("edit.instructions")}:</strong> {selectedImage.prompt}
               </p>
@@ -190,21 +187,21 @@ export default function EditImagePage() {
           </div>
 
           {/* Edit Controls */}
-          <div className="bg-[#2a2a2a] rounded-lg p-6">
+          <div>
             <h3 className="text-lg font-semibold text-gray-200 mb-4">{t("edit.instructions")}</h3>
 
             <textarea
               value={editPrompt}
               onChange={(e) => setEditPrompt(e.target.value)}
               placeholder={t("edit.prompt.placeholder")}
-              className="w-full p-4 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-purple-500 resize-vertical min-h-[120px] placeholder-gray-500 mb-4"
+              className="w-full p-4 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-purple-500 resize-vertical min-h-[120px] placeholder-gray-500"
               disabled={loadingStates.generating}
             />
 
             <button
               onClick={handleEditImage}
               disabled={loadingStates.generating || !editPrompt.trim()}
-              className="w-full bg-purple-600 text-white py-3 px-6 rounded font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+              className="w-full mt-4 bg-purple-600 text-white py-3 px-6 rounded font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
             >
               {loadingStates.generating ? (
                 <div className="flex items-center justify-center">
@@ -215,32 +212,43 @@ export default function EditImagePage() {
                 t("edit.editImage")
               )}
             </button>
-
-            {/* Suggestions */}
-            {loadingStates.loadingSuggestions ? (
-              <div className="flex items-center mt-4">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-3"></div>
-                <span className="text-gray-400 text-sm">{t("edit.loadingSuggestions")}</span>
-              </div>
-            ) : (
-              editSuggestions.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-gray-400 text-sm mb-2">{t("edit.suggestions")}</p>
-                  <div className="space-y-2">
-                    {editSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleUseSuggestion(suggestion)}
-                        className="w-full text-left p-2 text-sm bg-[#1a1a1a] text-gray-300 rounded hover:bg-[#3a3a3a] hover:text-gray-100 transition-colors"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            )}
           </div>
+
+          {/* Suggestions Input and Button */}
+          {editSuggestions.length === 0 && !loadingStates.generating && (
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Keyword (optional)"
+                className="flex-1 p-3 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-purple-500 placeholder-gray-500"
+                disabled={loadingStates.loadingSuggestions}
+              />
+              <button
+                onClick={handleGetSuggestions}
+                disabled={loadingStates.loadingSuggestions}
+                className="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700 disabled:bg-gray-700 transition-colors whitespace-nowrap"
+              >
+                {loadingStates.loadingSuggestions ? t("create.loading") : t("create.getIdeas")}
+              </button>
+            </div>
+          )}
+
+          {/* Suggestions */}
+          {editSuggestions.length > 0 && (
+            <div className="space-y-2">
+              {editSuggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleUseSuggestion(suggestion)}
+                  className="w-full text-left p-3 bg-[#1a1a1a] text-gray-300 rounded hover:bg-[#3a3a3a] hover:text-gray-100 transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

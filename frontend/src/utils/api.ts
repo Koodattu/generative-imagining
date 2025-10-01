@@ -93,8 +93,10 @@ export const aiApi = {
     return response.data;
   },
 
-  async suggestEdits(imageId: string): Promise<{ suggestions: string[] }> {
-    const response = await api.post(`/api/ai/suggest-edits?image_id=${imageId}`);
+  async suggestEdits(imageId: string, keyword?: string): Promise<{ suggestions: string[] }> {
+    const response = await api.post(`/api/ai/suggest-edits?image_id=${imageId}`, {
+      keyword,
+    });
     return response.data;
   },
 };

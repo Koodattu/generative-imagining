@@ -72,7 +72,9 @@ class ImageEdit(BaseModel):
 
 class SuggestPrompts(BaseModel):
     keyword: Optional[str] = None
-    context: Optional[str] = None
+
+class SuggestEdits(BaseModel):
+    keyword: Optional[str] = None
 
 class AdminLogin(BaseModel):
     password: str
@@ -148,24 +150,27 @@ async def describe_image_with_gemini(image_path: str) -> str:
         print(f"Error describing image: {e}")
         return "AI-generated image"
 
-async def suggest_edits_with_gemini(image_path: str, current_description: str) -> List[str]:
+async def suggest_edits_with_gemini(image_path: str, current_description: str, keyword: Optional[str] = None) -> List[str]:
     """Suggest edits for an image using Gemini AI"""
     try:
         img = Image.open(image_path)
+
+        if keyword:
+            query = f"This image is described as: {current_description}. Generate 3 very short edit suggestions based on the keyword '{keyword}'. Each suggestion must be 5 words or less. Keep them simple. Format: just list them, one per line."
+        else:
+            query = f"This image is described as: {current_description}. Generate 3 very short edit suggestions. Each must be 5 words or less. Keep them simple. Format: just list them, one per line."
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
                 img,
-                f"Based on this image (described as: {current_description}), suggest 5 creative ways to edit or modify it. "
-                "Make the suggestions specific and actionable for image generation prompts. "
-                "Format each suggestion on a new line starting with a number (1., 2., etc.)."
+                query
             ]
         )
 
         # Parse suggestions from response
         suggestions = response.text.split('\n')
-        return [s.strip('- ').strip() for s in suggestions if s.strip() and s.strip().startswith(('-', '1.', '2.', '3.', '4.', '5.'))][:5]
+        return [s.strip('- ').strip('1234567890. ').strip() for s in suggestions if s.strip()][:3]
     except Exception as e:
         print(f"Error suggesting edits: {e}")
         return [
@@ -425,14 +430,24 @@ async def describe_image(image_id: str):
         raise HTTPException(status_code=500, detail=f"Error describing image: {str(e)}")
 
 @app.post("/api/ai/suggest-edits")
-async def suggest_edits(image_id: str):
+async def suggest_edits(image_id: str, data: SuggestEdits):
     """Get edit suggestions for image"""
     try:
         image = await images_collection.find_one({"id": image_id})
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
 
-        suggestions = await suggest_edits_with_gemini(image["file_path"], image["description"])
+        # Generate description if not present
+        description = image.get("description")
+        if not description:
+            description = await describe_image_with_gemini(image["file_path"])
+            # Update the image document with the new description
+            await images_collection.update_one(
+                {"id": image_id},
+                {"$set": {"description": description}}
+            )
+
+        suggestions = await suggest_edits_with_gemini(image["file_path"], description, data.keyword)
 
         return {"suggestions": suggestions}
 
