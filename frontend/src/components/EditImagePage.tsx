@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import { imagesApi, aiApi, ImageData as ImageDataType } from "@/utils/api";
 import Image from "next/image";
 
 export default function EditImagePage() {
   const { user, loading } = useUser();
+  const { t } = useLocale();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const imageId = searchParams.get("imageId");
 
@@ -112,7 +115,7 @@ export default function EditImagePage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading...</p>
+          <p className="text-gray-400">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -121,9 +124,9 @@ export default function EditImagePage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500 mb-4">Failed to initialize user session</p>
+        <p className="text-red-500 mb-4">{t("common.error")}</p>
         <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">
-          Retry
+          {t("common.retry")}
         </button>
       </div>
     );
@@ -133,24 +136,24 @@ export default function EditImagePage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-100 mb-2">Edit Image</h1>
-        <p className="text-gray-400">Select an image and describe how to edit it</p>
+        <h1 className="text-3xl font-bold text-gray-100 mb-2">{t("edit.title")}</h1>
+        <p className="text-gray-400">{t("edit.subtitle")}</p>
       </div>
 
       {/* Image Selection */}
       <div className="bg-[#2a2a2a] rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-200 mb-4">Select Image</h2>
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">{t("edit.selectImage")}</h2>
 
         {loadingStates.loadingImages ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-            <span className="text-gray-400">Loading images...</span>
+            <span className="text-gray-400">{t("edit.loadingImages")}</span>
           </div>
         ) : userImages.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-400 mb-4">You don&apos;t have any images yet.</p>
-            <button onClick={() => (window.location.href = "/create")} className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">
-              Create Your First Image
+            <p className="text-gray-400 mb-4">{t("edit.noImages")}</p>
+            <button onClick={() => router.push("/create")} className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">
+              {t("edit.createFirst")}
             </button>
           </div>
         ) : (
@@ -175,25 +178,25 @@ export default function EditImagePage() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Original Image */}
           <div className="bg-[#2a2a2a] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-200 mb-4">Original</h3>
+            <h3 className="text-lg font-semibold text-gray-200 mb-4">{t("edit.original")}</h3>
             <div className="relative aspect-square bg-[#1a1a1a] rounded overflow-hidden mb-4">
               <Image src={imagesApi.getImageUrl(selectedImage.id)} alt={selectedImage.description} fill className="object-cover" unoptimized />
             </div>
             <div className="space-y-2 text-sm">
               <p className="text-gray-400">
-                <strong className="text-gray-300">Prompt:</strong> {selectedImage.prompt}
+                <strong className="text-gray-300">{t("edit.instructions")}:</strong> {selectedImage.prompt}
               </p>
             </div>
           </div>
 
           {/* Edit Controls */}
           <div className="bg-[#2a2a2a] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-200 mb-4">Edit Instructions</h3>
+            <h3 className="text-lg font-semibold text-gray-200 mb-4">{t("edit.instructions")}</h3>
 
             <textarea
               value={editPrompt}
               onChange={(e) => setEditPrompt(e.target.value)}
-              placeholder="Describe how to edit... (e.g., 'make it more colorful', 'add clouds')"
+              placeholder={t("edit.prompt.placeholder")}
               className="w-full p-4 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-purple-500 resize-vertical min-h-[120px] placeholder-gray-500 mb-4"
               disabled={loadingStates.generating}
             />
@@ -206,10 +209,10 @@ export default function EditImagePage() {
               {loadingStates.generating ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Editing...
+                  {t("edit.editing")}
                 </div>
               ) : (
-                "Edit Image"
+                t("edit.editImage")
               )}
             </button>
 
@@ -217,12 +220,12 @@ export default function EditImagePage() {
             {loadingStates.loadingSuggestions ? (
               <div className="flex items-center mt-4">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-3"></div>
-                <span className="text-gray-400 text-sm">Loading suggestions...</span>
+                <span className="text-gray-400 text-sm">{t("edit.loadingSuggestions")}</span>
               </div>
             ) : (
               editSuggestions.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-gray-400 text-sm mb-2">Suggestions:</p>
+                  <p className="text-gray-400 text-sm mb-2">{t("edit.suggestions")}</p>
                   <div className="space-y-2">
                     {editSuggestions.map((suggestion, index) => (
                       <button
@@ -244,7 +247,7 @@ export default function EditImagePage() {
       {/* Edited Image Result */}
       {editedImage && (
         <div className="bg-[#2a2a2a] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-200 mb-4">Edited Image</h3>
+          <h3 className="text-lg font-semibold text-gray-200 mb-4">{t("edit.editedImage")}</h3>
 
           <div className="space-y-4">
             <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden">
@@ -253,27 +256,24 @@ export default function EditImagePage() {
 
             <div className="text-center space-y-2 text-sm">
               <p className="text-gray-400">
-                <strong className="text-gray-300">Edit:</strong> {editPrompt}
+                <strong className="text-gray-300">{t("edit.edit")}:</strong> {editPrompt}
               </p>
               <p className="text-gray-400">
-                <strong className="text-gray-300">Description:</strong> {editedImage.description}
+                <strong className="text-gray-300">{t("edit.instructions")}:</strong> {editedImage.description}
               </p>
             </div>
 
             <div className="flex gap-3 justify-center">
               <button onClick={() => setEditedImage(null)} className="bg-[#3a3a3a] text-gray-200 px-5 py-2 rounded hover:bg-[#4a4a4a] transition-colors">
-                Edit Again
+                {t("edit.editAgain")}
               </button>
-              <button onClick={() => (window.location.href = "/gallery")} className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition-colors">
-                View Gallery
+              <button onClick={() => router.push("/gallery")} className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition-colors">
+                {t("edit.viewGallery")}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* User Info */}
-      <div className="text-center text-xs text-gray-600">User ID: {user.guid.slice(0, 8)}...</div>
     </div>
   );
 }

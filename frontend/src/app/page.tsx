@@ -1,28 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "@/contexts/LocaleContext";
 
 export default function Home() {
+  const { locale, setLocale, t } = useLocale();
+
   const options = [
     {
       href: "/create",
       icon: "➕",
-      title: "Create",
-      description: "Generate new images with AI",
+      title: t("home.create"),
+      description: t("home.create.desc"),
       color: "bg-blue-600 hover:bg-blue-700",
     },
     {
       href: "/edit",
       icon: "🖼️",
-      title: "Edit",
-      description: "Modify existing images",
+      title: t("home.edit"),
+      description: t("home.edit.desc"),
       color: "bg-purple-600 hover:bg-purple-700",
     },
     {
       href: "/gallery",
       icon: "🖥️",
-      title: "Gallery",
-      description: "View your creations",
+      title: t("home.gallery"),
+      description: t("home.gallery.desc"),
       color: "bg-green-600 hover:bg-green-700",
     },
   ];
@@ -30,9 +33,33 @@ export default function Home() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="max-w-4xl w-full mx-auto px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-100 mb-4">Generative Imagining</h1>
-          <p className="text-gray-400 text-lg">AI-powered image generation and editing</p>
+        <div className="text-center mb-8">
+          {/* Language Selector */}
+          <div className="flex justify-center gap-3 mb-6">
+            <button
+              onClick={() => setLocale("fi")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                locale === "fi" ? "bg-blue-600 text-white shadow-lg scale-105" : "bg-[#2a2a2a] text-gray-400 hover:bg-[#3a3a3a]"
+              }`}
+              aria-label="Finnish"
+            >
+              <span className="text-2xl">🇫🇮</span>
+              <span className="font-medium">Suomi</span>
+            </button>
+            <button
+              onClick={() => setLocale("en")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                locale === "en" ? "bg-blue-600 text-white shadow-lg scale-105" : "bg-[#2a2a2a] text-gray-400 hover:bg-[#3a3a3a]"
+              }`}
+              aria-label="English"
+            >
+              <span className="text-2xl">🇬🇧</span>
+              <span className="font-medium">English</span>
+            </button>
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-100 mb-4">{t("home.title")}</h1>
+          <p className="text-gray-400 text-lg">{t("home.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

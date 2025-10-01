@@ -2,20 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-// Temporary simple icons until lucide-react is installed
-const ImageIcon = () => <span>🖼️</span>;
-const PlusIcon = () => <span>➕</span>;
-const GalleryIcon = () => <span>🖥️</span>;
-const Settings = () => <span>⚙️</span>;
+import { useLocale } from "@/contexts/LocaleContext";
+import { ImagePlus, Image as ImageIcon, Images, Settings } from "lucide-react";
 
 export default function Navigation() {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   const navItems = [
-    { href: "/create", label: "Create", icon: PlusIcon },
-    { href: "/edit", label: "Edit", icon: ImageIcon },
-    { href: "/gallery", label: "Gallery", icon: GalleryIcon },
-    { href: "/admin", label: "Admin", icon: Settings },
+    { href: "/create", label: t("nav.create"), icon: ImagePlus },
+    { href: "/edit", label: t("nav.edit"), icon: ImageIcon },
+    { href: "/gallery", label: t("nav.gallery"), icon: Images },
+    { href: "/admin", label: t("nav.admin"), icon: Settings },
   ];
 
   // Mobile navigation items (no admin)
@@ -29,8 +27,8 @@ export default function Navigation() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2">
-              <ImageIcon />
-              <span className="text-xl font-bold text-gray-100">Generative Imagining</span>
+              <ImageIcon size={24} className="text-blue-500" />
+              <span className="text-xl font-bold text-gray-100">{t("nav.appName")}</span>
             </Link>
 
             {/* Navigation Links - Desktop */}
@@ -47,7 +45,7 @@ export default function Navigation() {
                       isActive ? "bg-blue-600 text-white" : "text-gray-300 hover:text-white hover:bg-[#3a3a3a]"
                     }`}
                   >
-                    <Icon />
+                    <Icon size={18} />
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -58,8 +56,8 @@ export default function Navigation() {
       </nav>
 
       {/* Mobile Navigation - Bottom App Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2a2a2a] border-t border-gray-700 z-50">
-        <div className="flex justify-around items-center h-16">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2a2a2a] border-t border-gray-700 z-50 safe-area-inset-bottom">
+        <div className="flex justify-around items-center h-16 px-2">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -68,12 +66,12 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center py-2 px-4 rounded text-xs font-medium transition-colors ${
-                  isActive ? "text-blue-500" : "text-gray-400 hover:text-gray-200"
+                className={`flex flex-col items-center justify-center flex-1 py-2 px-2 rounded-lg mx-1 transition-all ${
+                  isActive ? "bg-blue-600/20 text-blue-400 scale-105" : "text-gray-400 hover:text-gray-200 hover:bg-[#3a3a3a] active:scale-95"
                 }`}
               >
-                <Icon />
-                <span className="mt-1">{item.label}</span>
+                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} className="mb-1" />
+                <span className={`text-xs font-medium ${isActive ? "font-semibold" : ""}`}>{item.label}</span>
               </Link>
             );
           })}
