@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+motor
+pymongo
+google-genai
+pillow
+python-jose
+passlib
+bcrypt
+aiofiles
+python-dotenv

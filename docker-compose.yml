@@ -1,0 +1,54 @@
+services:
+  # MongoDB Database
+  mongo:
+    image: mongo:7
+    container_name: generative-imagining-db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: generative_imagining
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    container_name: generative-imagining-backend
+    restart: unless-stopped
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - MONGO_URI=mongodb://mongo:27017
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - IMAGES_PATH=/app/data/images
+    volumes:
+      - ./data/images:/app/data/images
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  # Next.js Frontend
+  frontend:
+    build: ./frontend
+    container_name: generative-imagining-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  mongo_data:
+
+networks:
+  app-network:
+    driver: bridge
