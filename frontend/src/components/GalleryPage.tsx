@@ -13,7 +13,8 @@ export default function GalleryPage() {
   const router = useRouter();
   const [images, setImages] = useState<ImageDataType[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<ImageDataType | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -36,13 +37,66 @@ export default function GalleryPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (currentIndex === null) return;
+
+      if (e.key === "ArrowLeft") {
+        navigatePrevious();
+      } else if (e.key === "ArrowRight") {
+        navigateNext();
+      } else if (e.key === "Escape") {
+        closeFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex]);
+
+  const openFullscreen = (index: number) => {
+    setCurrentIndex(index);
+    setSlideDirection(null);
+  };
+
+  const closeFullscreen = () => {
+    setCurrentIndex(null);
+    setSlideDirection(null);
+  };
+
+  const navigatePrevious = () => {
+    if (currentIndex === null) return;
+    setSlideDirection("right");
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
+      setSlideDirection(null);
+    }, 150);
+  };
+
+  const navigateNext = () => {
+    if (currentIndex === null) return;
+    setSlideDirection("left");
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
+      setSlideDirection(null);
+    }, 150);
+  };
+
   const handleDeleteImage = async (imageId: string) => {
     if (!user || !confirm(t("gallery.deleteConfirm"))) return;
 
     try {
       await imagesApi.deleteImage(imageId, user.guid);
-      setImages(images.filter((img) => img.id !== imageId));
-      setSelectedImage(null);
+      const newImages = images.filter((img) => img.id !== imageId);
+      setImages(newImages);
+
+      if (currentIndex !== null) {
+        if (newImages.length === 0) {
+          closeFullscreen();
+        } else if (currentIndex >= newImages.length) {
+          setCurrentIndex(newImages.length - 1);
+        }
+      }
     } catch (error) {
       console.error("Error deleting image:", error);
       alert("Failed to delete image. Please try again.");
@@ -75,101 +129,141 @@ export default function GalleryPage() {
     );
   }
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-100 mb-2">{t("gallery.title")}</h1>
-        <p className="text-gray-400">{t("gallery.subtitle")}</p>
-      </div>
+  const currentImage = currentIndex !== null ? images[currentIndex] : null;
 
-      {/* Gallery Grid */}
-      {loadingImages ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">{t("gallery.loadingImages")}</p>
+  return (
+    <>
+      <div>
+        {/* Header */}
+        <div className="text-center py-8">
+          <h1 className="text-3xl font-bold text-gray-100 mb-2">{t("gallery.title")}</h1>
+          <p className="text-gray-400">{t("gallery.subtitle")}</p>
+        </div>
+
+        {/* Gallery Grid */}
+        {loadingImages ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">{t("gallery.loadingImages")}</p>
+            </div>
           </div>
-        </div>
-      ) : images.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🖼️</div>
-          <h3 className="text-xl font-semibold text-gray-200 mb-2">{t("gallery.noImages")}</h3>
-          <p className="text-gray-400 mb-6">{t("gallery.noImages.desc")}</p>
-          <button onClick={() => router.push("/create")} className="bg-blue-600 text-white px-6 py-3 rounded font-medium hover:bg-blue-700 transition-colors">
-            {t("gallery.createFirst")}
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map((image) => (
-            <div key={image.id} className="bg-[#2a2a2a] rounded overflow-hidden hover:bg-[#3a3a3a] transition-colors">
-              <div className="relative aspect-square bg-[#1a1a1a] cursor-pointer" onClick={() => setSelectedImage(image)}>
+        ) : images.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🖼️</div>
+            <h3 className="text-xl font-semibold text-gray-200 mb-2">{t("gallery.noImages")}</h3>
+            <p className="text-gray-400 mb-6">{t("gallery.noImages.desc")}</p>
+            <button onClick={() => router.push("/create")} className="bg-blue-600 text-white px-6 py-3 rounded font-medium hover:bg-blue-700 transition-colors">
+              {t("gallery.createFirst")}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            {images.map((image, index) => (
+              <div
+                key={image.id}
+                className="relative aspect-square bg-[#1a1a1a] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => openFullscreen(index)}
+              >
                 <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} fill className="object-cover" unoptimized />
               </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              <div className="p-3">
-                <p className="text-sm text-gray-400 line-clamp-2 mb-3">{image.prompt}</p>
+      {/* Fullscreen Gallery View */}
+      {currentIndex !== null && currentImage && (
+        <div className="fixed inset-0 z-50 bg-black">
+          {/* Close Button */}
+          <button
+            onClick={closeFullscreen}
+            className="absolute top-4 right-4 z-50 text-white text-4xl hover:text-gray-300 transition-colors w-12 h-12 flex items-center justify-center"
+            aria-label="Close"
+          >
+            ×
+          </button>
 
-                <div className="flex space-x-2">
-                  <button onClick={() => handleEditImage(image.id)} className="flex-1 bg-purple-600 text-white text-sm py-2 rounded hover:bg-purple-700 transition-colors">
-                    {t("gallery.edit")}
-                  </button>
-                  <button onClick={() => handleDeleteImage(image.id)} className="flex-1 bg-red-600 text-white text-sm py-2 rounded hover:bg-red-700 transition-colors">
-                    {t("gallery.delete")}
-                  </button>
+          {/* Main Image Area */}
+          <div className="absolute inset-0 flex items-center justify-center pb-32">
+            {/* Previous Button */}
+            <button
+              onClick={navigatePrevious}
+              className="absolute left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
+              aria-label="Previous"
+            >
+              ‹
+            </button>
+
+            {/* Image Container with Animation */}
+            <div className="relative w-full h-full flex items-center justify-center px-24 overflow-hidden">
+              <div
+                className={`relative max-w-4xl max-h-full transition-all duration-300 ${
+                  slideDirection === "left" ? "opacity-0 translate-x-[-100px]" : slideDirection === "right" ? "opacity-0 translate-x-[100px]" : "opacity-100 translate-x-0"
+                }`}
+              >
+                <div className="relative" style={{ maxHeight: "calc(100vh - 300px)" }}>
+                  <Image
+                    src={imagesApi.getImageUrl(currentImage.id)}
+                    alt={currentImage.description}
+                    width={1024}
+                    height={1024}
+                    className="object-contain max-h-full w-auto"
+                    unoptimized
+                  />
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Image Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4">
-          <div className="bg-[#2a2a2a] rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold text-gray-100">{t("gallery.imageDetails")}</h3>
-                <button onClick={() => setSelectedImage(null)} className="text-gray-400 hover:text-gray-200 text-2xl">
-                  ×
+            {/* Next Button */}
+            <button
+              onClick={navigateNext}
+              className="absolute right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
+              aria-label="Next"
+            >
+              ›
+            </button>
+          </div>
+
+          {/* Bottom Info Panel */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black to-transparent pb-4 pt-8">
+            {/* Prompt and Buttons */}
+            <div className="max-w-4xl mx-auto px-8 mb-4">
+              <p className="text-white text-center mb-4 text-lg">{currentImage.prompt}</p>
+              <div className="flex justify-center">
+                <button onClick={() => handleEditImage(currentImage.id)} className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 transition-colors">
+                  {t("gallery.edit")}
                 </button>
               </div>
+            </div>
 
-              <div className="space-y-4">
-                <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden">
-                  <Image src={imagesApi.getImageUrl(selectedImage.id)} alt={selectedImage.description} fill className="object-cover" unoptimized />
-                </div>
-
-                <div className="space-y-2 text-gray-400 text-sm">
-                  <p>
-                    <strong className="text-gray-300">{t("gallery.prompt")}:</strong> {selectedImage.prompt}
-                  </p>
-                  <p>
-                    <strong className="text-gray-300">{t("gallery.description")}:</strong> {selectedImage.description}
-                  </p>
-                  <p>
-                    <strong className="text-gray-300">{t("gallery.created")}:</strong> {new Date(selectedImage.created_at).toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="flex space-x-3 justify-center">
-                  <button onClick={() => handleEditImage(selectedImage.id)} className="bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700 transition-colors">
-                    {t("gallery.edit")}
-                  </button>
-                  <button onClick={() => handleDeleteImage(selectedImage.id)} className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700 transition-colors">
-                    {t("gallery.delete")}
-                  </button>
-                  <button onClick={() => setSelectedImage(null)} className="bg-[#3a3a3a] text-gray-200 px-5 py-2 rounded hover:bg-[#4a4a4a] transition-colors">
-                    {t("gallery.close")}
-                  </button>
-                </div>
+            {/* Thumbnail Strip */}
+            <div className="px-8">
+              <div className="flex justify-center items-center space-x-2 overflow-x-auto pb-2">
+                {images.map((image, index) => (
+                  <div
+                    key={image.id}
+                    onClick={() => {
+                      if (index !== currentIndex) {
+                        setSlideDirection(index > currentIndex ? "left" : "right");
+                        setTimeout(() => {
+                          setCurrentIndex(index);
+                          setSlideDirection(null);
+                        }, 150);
+                      }
+                    }}
+                    className={`relative flex-shrink-0 w-16 h-16 rounded cursor-pointer transition-all ${
+                      index === currentIndex ? "ring-2 ring-white scale-110" : "opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    <Image src={imagesApi.getImageUrl(image.id)} alt="" fill className="object-cover rounded" unoptimized />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
