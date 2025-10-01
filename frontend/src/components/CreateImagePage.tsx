@@ -87,7 +87,7 @@ export default function CreateImagePage() {
       </div>
 
       {/* Main Input Section */}
-      <div className="bg-[#2a2a2a] rounded-lg p-6">
+      <div>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -112,14 +112,21 @@ export default function CreateImagePage() {
         </button>
       </div>
 
-      {/* Suggestions */}
+      {/* Suggestions Input and Button */}
       {suggestions.length === 0 && !generating && (
-        <div className="bg-[#2a2a2a] rounded-lg p-6">
-          <p className="text-gray-400 text-sm mb-3">{t("create.needInspiration")}</p>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="Keyword (optional)"
+            className="flex-1 p-3 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 placeholder-gray-500"
+            disabled={loadingSuggestions}
+          />
           <button
             onClick={handleGetSuggestions}
             disabled={loadingSuggestions}
-            className="bg-[#3a3a3a] text-gray-200 px-4 py-2 rounded hover:bg-[#4a4a4a] disabled:bg-gray-700 transition-colors"
+            className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 disabled:bg-gray-700 transition-colors whitespace-nowrap"
           >
             {loadingSuggestions ? t("create.loading") : t("create.getIdeas")}
           </button>
@@ -127,19 +134,16 @@ export default function CreateImagePage() {
       )}
 
       {suggestions.length > 0 && (
-        <div className="bg-[#2a2a2a] rounded-lg p-6">
-          <p className="text-gray-400 text-sm mb-3">{t("create.clickSuggestion")}</p>
-          <div className="space-y-2">
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => handleUseSuggestion(suggestion)}
-                className="w-full text-left p-3 bg-[#1a1a1a] text-gray-300 rounded hover:bg-[#3a3a3a] hover:text-gray-100 transition-colors"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-2">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => handleUseSuggestion(suggestion)}
+              className="w-full text-left p-3 bg-[#1a1a1a] text-gray-300 rounded hover:bg-[#3a3a3a] hover:text-gray-100 transition-colors"
+            >
+              {suggestion}
+            </button>
+          ))}
         </div>
       )}
 

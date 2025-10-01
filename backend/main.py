@@ -139,7 +139,7 @@ async def describe_image_with_gemini(image_path: str) -> str:
             model='gemini-2.5-flash',
             contents=[
                 img,
-                "Describe this image in detail. Focus on the main subjects, colors, mood, and artistic style."
+                "Describe this image in 5-7 words maximum. Be very brief and simple."
             ]
         )
 
@@ -169,11 +169,9 @@ async def suggest_edits_with_gemini(image_path: str, current_description: str) -
     except Exception as e:
         print(f"Error suggesting edits: {e}")
         return [
-            "Add warm lighting effects",
-            "Change the color palette to cooler tones",
-            "Add background elements",
-            "Enhance details and textures",
-            "Create a different mood or atmosphere"
+            "Add warm lighting",
+            "Make it cooler",
+            "Add more details"
         ]
 
 async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> bytes:
@@ -391,9 +389,9 @@ async def suggest_prompts(data: SuggestPrompts):
     """Get prompt suggestions"""
     try:
         if data.keyword:
-            query = f"Generate 5 creative image generation prompts based on the keyword '{data.keyword}'. Make them diverse and interesting. Format each prompt on a new line starting with a number (1., 2., etc.)."
+            query = f"Generate 3 very short image prompts based on '{data.keyword}'. Each prompt must be 5 words or less. Keep them simple and creative. Format: just list them, one per line."
         else:
-            query = "Generate 5 creative and diverse image generation prompts for inspiration. Include different styles, subjects, and moods. Format each prompt on a new line starting with a number (1., 2., etc.)."
+            query = "Generate 3 random very short image prompts. Each must be 5 words or less. Keep them simple and creative. Format: just list them, one per line."
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash',
@@ -402,17 +400,15 @@ async def suggest_prompts(data: SuggestPrompts):
 
         # Parse suggestions
         suggestions = response.text.split('\n')
-        cleaned_suggestions = [s.strip('- ').strip() for s in suggestions if s.strip() and s.strip().startswith(('-', '1.', '2.', '3.', '4.', '5.'))][:5]
+        cleaned_suggestions = [s.strip('- ').strip('1234567890. ').strip() for s in suggestions if s.strip()][:3]
 
         return {"suggestions": cleaned_suggestions}
 
     except Exception as e:
         return {"suggestions": [
-            "A majestic dragon soaring through clouds at sunset",
-            "A cozy cabin in a magical forest with glowing mushrooms",
-            "A futuristic city with floating cars and neon lights",
-            "A peaceful garden with cherry blossoms and a small pond",
-            "An abstract painting with vibrant colors and flowing shapes"
+            "Sunset over mountains",
+            "Magical forest cabin",
+            "Futuristic neon city"
         ]}
 
 @app.post("/api/ai/describe-image")
