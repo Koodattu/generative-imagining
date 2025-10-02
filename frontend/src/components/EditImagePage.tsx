@@ -179,7 +179,7 @@ export default function EditImagePage() {
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={handleGetSuggestions}
-                  disabled={loadingSuggestions}
+                  disabled={loadingSuggestions || !editPrompt.trim()}
                   className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
                 >
                   {loadingSuggestions ? (
