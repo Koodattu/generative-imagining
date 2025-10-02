@@ -112,7 +112,12 @@ export default function CreateImagePage() {
         {/* Show loading state while generating or loading image */}
         {(generating || (generatedImage && !imageLoaded)) && !error && (
           <div className="relative aspect-square max-w-md md:max-w-lg mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden flex items-center justify-center shadow-2xl">
-            <div className="text-center">
+            {/* Shimmer effect */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-[-100%] -translate-x-full animate-[shimmer_2.5s_infinite] bg-gradient-to-r from-transparent from-40% via-white/25 via-50% to-transparent to-60% rotate-12 origin-center"></div>
+            </div>
+
+            <div className="text-center relative z-10">
               <div className="animate-spin rounded-full h-12 md:h-16 w-12 md:w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
               <p className="text-gray-400 text-base md:text-lg">{t("create.generating")}</p>
             </div>

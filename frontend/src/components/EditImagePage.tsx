@@ -172,7 +172,12 @@ export default function EditImagePage() {
           {/* Loading overlay while editing or loading image */}
           {(editing || !imageLoaded) && !error && (
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
-              <div className="text-center">
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-[-100%] -translate-x-full animate-[shimmer_3.5s_infinite] bg-gradient-to-r from-transparent from-40% via-white/25 via-50% to-transparent to-60% rotate-12 origin-center"></div>
+              </div>
+
+              <div className="text-center relative z-10">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-4"></div>
                 <p className="text-white text-lg font-medium">{t("edit.editing")}</p>
               </div>
