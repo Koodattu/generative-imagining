@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { usePassword } from "@/contexts/PasswordContext";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/";
+import { passwordApi } from "@/utils/api";
 
 export default function PasswordDialog() {
   const { t } = useLocale();
@@ -23,15 +22,7 @@ export default function PasswordDialog() {
     setMessage(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/password/validate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ password: inputPassword }),
-      });
-
-      const data = await response.json();
+      const data = await passwordApi.validatePassword(inputPassword);
 
       if (data.valid) {
         setPassword(inputPassword);

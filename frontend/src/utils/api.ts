@@ -110,6 +110,21 @@ export const aiApi = {
   },
 };
 
+// Password API
+export const passwordApi = {
+  async validatePassword(password: string): Promise<{
+    valid: boolean;
+    is_admin?: boolean;
+    image_limit?: number;
+    suggestion_limit?: number;
+    expires_at?: string;
+    message: string;
+  }> {
+    const response = await api.post("/api/password/validate", { password });
+    return response.data;
+  },
+};
+
 // Admin API
 export const adminApi = {
   async login(password: string): Promise<{ token: string; message: string }> {
