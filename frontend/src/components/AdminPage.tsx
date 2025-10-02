@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { adminApi, cookieManager, ImageData as ImageDataType } from "@/utils/api";
+import { adminApi, cookieManager, ImageData as ImageDataType, imagesApi } from "@/utils/api";
 import { useLocale } from "@/contexts/LocaleContext";
 import Image from "next/image";
 
@@ -276,7 +276,7 @@ export default function AdminPage() {
                           <tr key={image.id} className="hover:bg-[#3a3a3a] transition-colors">
                             <td className="px-3 md:px-6 py-4">
                               <div className="relative w-20 h-20 md:w-24 md:h-24 bg-[#1a1a1a] rounded overflow-hidden cursor-pointer" onClick={() => setSelectedImage(image)}>
-                                <Image src={`http://localhost:8000/api/images/${image.id}`} alt={image.description} fill className="object-cover" unoptimized />
+                                <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} fill className="object-cover" unoptimized />
                               </div>
                             </td>
                             <td className="px-3 md:px-6 py-4 max-w-xs">
@@ -521,7 +521,7 @@ export default function AdminPage() {
 
               <div className="space-y-3 md:space-y-4">
                 <div className="relative aspect-square max-w-md md:max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden">
-                  <Image src={`http://localhost:8000/api/images/${selectedImage.id}`} alt={selectedImage.description} fill className="object-cover" unoptimized />
+                  <Image src={imagesApi.getImageUrl(selectedImage.id)} alt={selectedImage.description} fill className="object-cover" unoptimized />
                 </div>
 
                 <div className="space-y-2 text-xs md:text-sm text-gray-400">
