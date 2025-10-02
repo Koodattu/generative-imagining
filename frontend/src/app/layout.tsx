@@ -3,7 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/contexts/UserContext";
 import { LocaleProvider } from "@/contexts/LocaleContext";
+import { PasswordProvider } from "@/contexts/PasswordContext";
 import Navigation from "@/components/Navigation";
+import PasswordDialog from "@/components/PasswordDialog";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,10 +34,13 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#1a1a1a] min-h-screen overflow-x-hidden`}>
         <LocaleProvider>
-          <UserProvider>
-            <Navigation />
-            <main className="container mx-auto px-4 py-4 pb-20 md:py-8 md:pb-8">{children}</main>
-          </UserProvider>
+          <PasswordProvider>
+            <UserProvider>
+              <Navigation />
+              <main className="container mx-auto px-4 py-4 pb-20 md:py-8 md:pb-8">{children}</main>
+              <PasswordDialog />
+            </UserProvider>
+          </PasswordProvider>
         </LocaleProvider>
       </body>
     </html>

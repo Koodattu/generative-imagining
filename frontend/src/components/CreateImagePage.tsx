@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import { useLocale } from "@/contexts/LocaleContext";
+import { usePassword } from "@/contexts/PasswordContext";
 import { imagesApi, aiApi, ImageData as ImageDataType } from "@/utils/api";
 import Image from "next/image";
 
 export default function CreateImagePage() {
   const { user, loading } = useUser();
   const { t, locale } = useLocale();
+  const { password, setShowPasswordDialog } = usePassword();
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -22,12 +24,19 @@ export default function CreateImagePage() {
   const handleGenerateImage = async () => {
     if (!user || !prompt.trim()) return;
 
+    // Check if password is available
+    if (!password) {
+      setShowPasswordDialog(true);
+      setError(t("password.required"));
+      return;
+    }
+
     setGenerating(true);
     setImageLoaded(false);
     setSuggestions([]); // Reset suggestions when generating
     setError(null); // Reset error state
     try {
-      const result = await imagesApi.generateImage(prompt, user.guid);
+      const result = await imagesApi.generateImage(prompt, user.guid, password);
       setGeneratedImage(result);
       setGenerating(false); // Allow image to render and trigger onLoad
     } catch (error) {
@@ -36,6 +45,10 @@ export default function CreateImagePage() {
       const err = error as { response?: { status?: number } };
       if (err?.response?.status === 429) {
         setError(t("error.rateLimit"));
+      } else if (err?.response?.status === 403) {
+        // Password invalid or expired
+        setError(t("error.invalidPassword"));
+        setShowPasswordDialog(true);
       } else {
         setError(t("error.generate"));
       }
@@ -44,12 +57,25 @@ export default function CreateImagePage() {
   };
 
   const handleGetSuggestions = async () => {
+    if (!user) return;
+
+    // Check if password is available
+    if (!password) {
+      setShowPasswordDialog(true);
+      return;
+    }
+
     setLoadingSuggestions(true);
     try {
-      const result = await aiApi.suggestPrompts(prompt.trim() || undefined, locale);
+      const result = await aiApi.suggestPrompts(prompt.trim() || undefined, locale, user.guid, password);
       setSuggestions(result.suggestions);
     } catch (error) {
       console.error("Error getting suggestions:", error);
+      const err = error as { response?: { status?: number } };
+      if (err?.response?.status === 403) {
+        // Password invalid or expired
+        setShowPasswordDialog(true);
+      }
       setSuggestions([
         "A majestic dragon soaring through clouds at sunset",
         "A cozy cabin in a magical forest with glowing mushrooms",

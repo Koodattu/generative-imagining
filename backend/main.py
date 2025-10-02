@@ -55,6 +55,8 @@ mongo_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 db = mongo_client.generative_imagining
 users_collection = db.users
 images_collection = db.images
+passwords_collection = db.passwords
+usage_tracking_collection = db.usage_tracking
 
 # Initialize Gemini AI
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
@@ -72,21 +74,36 @@ class UserResponse(BaseModel):
 class ImageGenerate(BaseModel):
     prompt: str
     user_guid: str
+    password: str
 
 class ImageEdit(BaseModel):
     image_id: str
     edit_prompt: str
     user_guid: str
+    password: str
 
 class SuggestPrompts(BaseModel):
     keyword: Optional[str] = None
     language: Optional[str] = None
+    password: str
+    user_guid: str
 
 class SuggestEdits(BaseModel):
     keyword: Optional[str] = None
     language: Optional[str] = None
+    password: str
+    user_guid: str
 
 class AdminLogin(BaseModel):
+    password: str
+
+class PasswordCreate(BaseModel):
+    password: str
+    valid_hours: Optional[int] = 1
+    image_limit: Optional[int] = 5
+    suggestion_limit: Optional[int] = 50
+
+class PasswordValidate(BaseModel):
     password: str
 
 class ImageResponse(BaseModel):
@@ -97,6 +114,7 @@ class ImageResponse(BaseModel):
     description: str
     created_at: datetime
     updated_at: datetime
+    created_with_password: str = "N/A"  # Default to N/A for older images without this field
 
 # Response schemas for structured AI outputs
 SUGGESTIONS_SCHEMA = {
@@ -142,6 +160,71 @@ async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends
     if credentials.credentials != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Invalid admin credentials")
     return credentials
+
+async def validate_password(password: str, user_guid: str, usage_type: str = "image") -> bool:
+    """
+    Validate password and check usage limits
+    usage_type can be 'image' (for generation/editing) or 'suggestion'
+    Returns True if password is valid and user has remaining quota
+    """
+    # Admin password always works
+    if password == ADMIN_PASSWORD:
+        return True
+
+    # Check if password exists and is not expired
+    password_doc = await passwords_collection.find_one({
+        "password": password,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+
+    if not password_doc:
+        return False
+
+    # Check usage for this user+password combination
+    usage_key = f"{user_guid}:{password}"
+    usage_doc = await usage_tracking_collection.find_one({"usage_key": usage_key})
+
+    if not usage_doc:
+        # First time use - create tracking document
+        await usage_tracking_collection.insert_one({
+            "usage_key": usage_key,
+            "user_guid": user_guid,
+            "password": password,
+            "image_count": 0,
+            "suggestion_count": 0,
+            "created_at": datetime.utcnow()
+        })
+        usage_doc = {"image_count": 0, "suggestion_count": 0}
+
+    # Check limits
+    if usage_type == "image":
+        if usage_doc["image_count"] >= password_doc["image_limit"]:
+            return False
+    elif usage_type == "suggestion":
+        if usage_doc["suggestion_count"] >= password_doc["suggestion_limit"]:
+            return False
+
+    return True
+
+async def increment_usage(password: str, user_guid: str, usage_type: str = "image"):
+    """Increment usage counter for user+password combination"""
+    if password == ADMIN_PASSWORD:
+        return  # Don't track admin usage
+
+    usage_key = f"{user_guid}:{password}"
+
+    if usage_type == "image":
+        await usage_tracking_collection.update_one(
+            {"usage_key": usage_key},
+            {"$inc": {"image_count": 1}},
+            upsert=True
+        )
+    elif usage_type == "suggestion":
+        await usage_tracking_collection.update_one(
+            {"usage_key": usage_key},
+            {"$inc": {"suggestion_count": 1}},
+            upsert=True
+        )
 
 async def generate_image_with_gemini(prompt: str) -> bytes:
     """Generate image using Gemini AI"""
@@ -354,6 +437,10 @@ async def generate_image(data: ImageGenerate):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Validate password and check limits
+        if not await validate_password(data.password, data.user_guid, "image"):
+            raise HTTPException(status_code=403, detail="Invalid or expired password")
+
         # Generate image
         image_data = await generate_image_with_gemini(data.prompt)
 
@@ -377,10 +464,14 @@ async def generate_image(data: ImageGenerate):
             "prompt": data.prompt,
             "description": description,
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.utcnow(),
+            "created_with_password": data.password if data.password != ADMIN_PASSWORD else "admin"
         }
 
         await images_collection.insert_one(image_doc)
+
+        # Increment usage counter
+        await increment_usage(data.password, data.user_guid, "image")
 
         return ImageResponse(**image_doc)
 
@@ -397,6 +488,10 @@ async def generate_image(data: ImageGenerate):
 async def edit_image(data: ImageEdit):
     """Edit existing image"""
     try:
+        # Validate password and check limits
+        if not await validate_password(data.password, data.user_guid, "image"):
+            raise HTTPException(status_code=403, detail="Invalid or expired password")
+
         # Get original image
         original_image = await images_collection.find_one({"id": data.image_id, "user_guid": data.user_guid})
         if not original_image:
@@ -429,10 +524,14 @@ async def edit_image(data: ImageEdit):
             "description": description,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "original_image_id": data.image_id
+            "original_image_id": data.image_id,
+            "created_with_password": data.password if data.password != ADMIN_PASSWORD else "admin"
         }
 
         await images_collection.insert_one(new_image_doc)
+
+        # Increment usage counter
+        await increment_usage(data.password, data.user_guid, "image")
 
         return ImageResponse(**new_image_doc)
 
@@ -499,6 +598,10 @@ async def delete_image(image_id: str, user_guid: str):
 async def suggest_prompts(data: SuggestPrompts):
     """Get prompt suggestions"""
     try:
+        # Validate password and check limits
+        if not await validate_password(data.password, data.user_guid, "suggestion"):
+            raise HTTPException(status_code=403, detail="Invalid or expired password")
+
         # Check rate limit before making API call
         if not await check_rate_limit():
             raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again in a moment.")
@@ -543,6 +646,10 @@ Return as a JSON object with a 'suggestions' array containing exactly 3 strings.
 
         # Parse suggestions from structured JSON response
         result = json.loads(response.text)
+
+        # Increment usage counter
+        await increment_usage(data.password, data.user_guid, "suggestion")
+
         return {"suggestions": result["suggestions"][:3]}
 
     except Exception as e:
@@ -569,6 +676,10 @@ async def describe_image(image_id: str):
 async def suggest_edits(image_id: str, data: SuggestEdits):
     """Get edit suggestions for image"""
     try:
+        # Validate password and check limits
+        if not await validate_password(data.password, data.user_guid, "suggestion"):
+            raise HTTPException(status_code=403, detail="Invalid or expired password")
+
         image = await images_collection.find_one({"id": image_id})
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
@@ -584,6 +695,9 @@ async def suggest_edits(image_id: str, data: SuggestEdits):
             )
 
         suggestions = await suggest_edits_with_gemini(image["file_path"], description, data.keyword, data.language)
+
+        # Increment usage counter
+        await increment_usage(data.password, data.user_guid, "suggestion")
 
         return {"suggestions": suggestions}
 
@@ -625,15 +739,141 @@ async def get_admin_stats(credentials: HTTPAuthorizationCredentials = Depends(ve
         recent_images = await images_collection.count_documents({"created_at": {"$gte": week_ago}})
         recent_users = await users_collection.count_documents({"created_at": {"$gte": week_ago}})
 
+        # Get images by password statistics
+        password_stats = []
+        async for pwd in passwords_collection.find({}):
+            image_count = await images_collection.count_documents({"created_with_password": pwd["password"]})
+            password_stats.append({
+                "password": pwd["password"],
+                "image_count": image_count,
+                "is_expired": pwd["expires_at"] < datetime.utcnow()
+            })
+
+        # Add admin stats
+        admin_count = await images_collection.count_documents({"created_with_password": "admin"})
+        password_stats.append({
+            "password": "admin",
+            "image_count": admin_count,
+            "is_expired": False
+        })
+
         return {
             "total_users": total_users,
             "total_images": total_images,
             "recent_images": recent_images,
-            "recent_users": recent_users
+            "recent_users": recent_users,
+            "password_stats": password_stats
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching stats: {str(e)}")
+
+@app.post("/api/admin/passwords/create")
+async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Create a new access password"""
+    try:
+        from datetime import timedelta
+        expires_at = datetime.utcnow() + timedelta(hours=data.valid_hours)
+
+        password_doc = {
+            "password": data.password,
+            "valid_hours": data.valid_hours,
+            "image_limit": data.image_limit,
+            "suggestion_limit": data.suggestion_limit,
+            "created_at": datetime.utcnow(),
+            "expires_at": expires_at
+        }
+
+        await passwords_collection.insert_one(password_doc)
+
+        return {
+            "message": "Password created successfully",
+            "password": data.password,
+            "expires_at": expires_at,
+            "image_limit": data.image_limit,
+            "suggestion_limit": data.suggestion_limit
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating password: {str(e)}")
+
+@app.get("/api/admin/passwords")
+async def get_passwords(credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Get all passwords"""
+    try:
+        passwords = []
+        async for pwd in passwords_collection.find({}).sort("created_at", -1):
+            passwords.append({
+                "password": pwd["password"],
+                "valid_hours": pwd["valid_hours"],
+                "image_limit": pwd["image_limit"],
+                "suggestion_limit": pwd["suggestion_limit"],
+                "created_at": pwd["created_at"],
+                "expires_at": pwd["expires_at"],
+                "is_expired": pwd["expires_at"] < datetime.utcnow()
+            })
+
+        return {"passwords": passwords}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching passwords: {str(e)}")
+
+@app.delete("/api/admin/images/{image_id}")
+async def delete_image(image_id: str, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Delete an image (admin only)"""
+    try:
+        # Find the image
+        image = await images_collection.find_one({"id": image_id})
+        if not image:
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        # Delete the file
+        import os
+        file_path = image["file_path"]
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Delete from database
+        await images_collection.delete_one({"id": image_id})
+
+        return {"message": "Image deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting image: {str(e)}")
+
+@app.post("/api/password/validate")
+async def validate_password_endpoint(data: PasswordValidate):
+    """Validate a password without using it"""
+    try:
+        # Check if it's admin password
+        if data.password == ADMIN_PASSWORD:
+            return {
+                "valid": True,
+                "is_admin": True,
+                "message": "Admin password - unlimited access"
+            }
+
+        # Check if password exists and is not expired
+        password_doc = await passwords_collection.find_one({
+            "password": data.password,
+            "expires_at": {"$gt": datetime.utcnow()}
+        })
+
+        if not password_doc:
+            return {
+                "valid": False,
+                "message": "Invalid or expired password"
+            }
+
+        return {
+            "valid": True,
+            "is_admin": False,
+            "image_limit": password_doc["image_limit"],
+            "suggestion_limit": password_doc["suggestion_limit"],
+            "expires_at": password_doc["expires_at"],
+            "message": "Password valid"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error validating password: {str(e)}")
 
 # Mount static files
 app.mount("/images", StaticFiles(directory=IMAGES_PATH), name="images")

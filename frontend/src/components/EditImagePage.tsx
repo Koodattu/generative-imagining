@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import { useLocale } from "@/contexts/LocaleContext";
+import { usePassword } from "@/contexts/PasswordContext";
 import { imagesApi, aiApi, ImageData as ImageDataType } from "@/utils/api";
 import Image from "next/image";
 
 export default function EditImagePage() {
   const { user, loading } = useUser();
   const { t, locale } = useLocale();
+  const { password, setShowPasswordDialog } = usePassword();
   const router = useRouter();
   const searchParams = useSearchParams();
   const imageId = searchParams.get("imageId");
@@ -45,14 +47,25 @@ export default function EditImagePage() {
   }, [user, imageId]);
 
   const handleGetSuggestions = async () => {
-    if (!selectedImage) return;
+    if (!selectedImage || !user) return;
+
+    // Check if password is available
+    if (!password) {
+      setShowPasswordDialog(true);
+      return;
+    }
 
     setLoadingSuggestions(true);
     try {
-      const result = await aiApi.suggestEdits(selectedImage.id, editPrompt.trim() || undefined, locale);
+      const result = await aiApi.suggestEdits(selectedImage.id, editPrompt.trim() || undefined, locale, user.guid, password);
       setSuggestions(result.suggestions);
     } catch (error) {
       console.error("Error getting suggestions:", error);
+      const err = error as { response?: { status?: number } };
+      if (err?.response?.status === 403) {
+        // Password invalid or expired
+        setShowPasswordDialog(true);
+      }
       setSuggestions(["Add warm lighting", "Make it cooler", "Add more details", "Change the background", "Enhance the colors"]);
     } finally {
       setLoadingSuggestions(false);
@@ -74,12 +87,19 @@ export default function EditImagePage() {
   const handleEditImage = async () => {
     if (!user || !selectedImage || !editPrompt.trim()) return;
 
+    // Check if password is available
+    if (!password) {
+      setShowPasswordDialog(true);
+      setError(t("password.required"));
+      return;
+    }
+
     setEditing(true);
     setImageLoaded(false);
     setSuggestions([]); // Reset suggestions when editing
     setError(null); // Reset error state
     try {
-      const result = await imagesApi.editImage(selectedImage.id, editPrompt, user.guid);
+      const result = await imagesApi.editImage(selectedImage.id, editPrompt, user.guid, password);
       setSelectedImage(result);
       setEditPrompt("");
       setEditing(false); // Allow image to render and trigger onLoad
@@ -89,6 +109,10 @@ export default function EditImagePage() {
       const err = error as { response?: { status?: number } };
       if (err?.response?.status === 429) {
         setError(t("error.rateLimit"));
+      } else if (err?.response?.status === 403) {
+        // Password invalid or expired
+        setError(t("error.invalidPassword"));
+        setShowPasswordDialog(true);
       } else {
         setError(t("error.edit"));
       }

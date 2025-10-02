@@ -10,6 +10,21 @@ interface AdminStats {
   total_images: number;
   recent_images: number;
   recent_users: number;
+  password_stats: Array<{
+    password: string;
+    image_count: number;
+    is_expired: boolean;
+  }>;
+}
+
+interface PasswordData {
+  password: string;
+  valid_hours: number;
+  image_limit: number;
+  suggestion_limit: number;
+  created_at: string;
+  expires_at: string;
+  is_expired: boolean;
 }
 
 export default function AdminPage() {
@@ -20,7 +35,14 @@ export default function AdminPage() {
   const [images, setImages] = useState<ImageDataType[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImageDataType | null>(null);
-  const [activeTab, setActiveTab] = useState<"images" | "stats">("images");
+  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords">("images");
+  const [passwords, setPasswords] = useState<PasswordData[]>([]);
+  const [newPassword, setNewPassword] = useState({
+    password: "",
+    validHours: 1,
+    imageLimit: 5,
+    suggestionLimit: 50,
+  });
 
   useEffect(() => {
     // Check if already authenticated
@@ -34,9 +56,10 @@ export default function AdminPage() {
   const loadAdminData = async (token: string) => {
     setLoading(true);
     try {
-      const [imagesResult, statsResult] = await Promise.all([adminApi.getAllImages(token), adminApi.getStats(token)]);
+      const [imagesResult, statsResult, passwordsResult] = await Promise.all([adminApi.getAllImages(token), adminApi.getStats(token), adminApi.getPasswords(token)]);
       setImages(imagesResult.images);
       setStats(statsResult);
+      setPasswords(passwordsResult.passwords);
     } catch (error) {
       console.error("Error loading admin data:", error);
       // Token might be invalid, clear it
@@ -70,7 +93,65 @@ export default function AdminPage() {
     setIsAuthenticated(false);
     setImages([]);
     setStats(null);
+    setPasswords([]);
     setPassword("");
+  };
+
+  const handleCreatePassword = async () => {
+    if (!newPassword.password.trim()) return;
+
+    setLoading(true);
+    try {
+      const token = cookieManager.getAdminToken();
+      if (!token) return;
+
+      await adminApi.createPassword(token, newPassword.password, newPassword.validHours, newPassword.imageLimit, newPassword.suggestionLimit);
+
+      // Reload passwords
+      const passwordsResult = await adminApi.getPasswords(token);
+      setPasswords(passwordsResult.passwords);
+
+      // Reset form
+      setNewPassword({
+        password: "",
+        validHours: 1,
+        imageLimit: 5,
+        suggestionLimit: 50,
+      });
+
+      alert("Password created successfully!");
+    } catch (error) {
+      console.error("Error creating password:", error);
+      alert("Failed to create password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!confirm(t("admin.confirmDelete"))) return;
+
+    setLoading(true);
+    try {
+      const token = cookieManager.getAdminToken();
+      if (!token) return;
+
+      await adminApi.deleteImage(token, imageId);
+
+      // Remove from local state
+      setImages(images.filter((img) => img.id !== imageId));
+
+      // Reload stats to update counts
+      const statsResult = await adminApi.getStats(token);
+      setStats(statsResult);
+
+      alert(t("admin.imageDeleted"));
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      alert(t("admin.deleteError"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -146,6 +227,14 @@ export default function AdminPage() {
           >
             {t("admin.statistics")}
           </button>
+          <button
+            onClick={() => setActiveTab("passwords")}
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm ${
+              activeTab === "passwords" ? "border-blue-500 text-blue-500" : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            {t("admin.passwords")} ({passwords.length})
+          </button>
         </nav>
       </div>
 
@@ -168,19 +257,57 @@ export default function AdminPage() {
                   <p className="text-gray-400">{t("admin.noImages.desc")}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
-                  {images.map((image) => (
-                    <div key={image.id} className="bg-[#2a2a2a] rounded overflow-hidden hover:bg-[#3a3a3a] transition-colors">
-                      <div className="relative aspect-square bg-[#1a1a1a] cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedImage(image)}>
-                        <Image src={`http://localhost:8000/api/images/${image.id}`} alt={image.description} fill className="object-cover" unoptimized />
-                      </div>
-
-                      <div className="p-2 md:p-3">
-                        <p className="text-xs md:text-sm text-gray-400 line-clamp-2 mb-1 md:mb-2">{image.prompt}</p>
-                        <p className="text-[10px] md:text-xs text-gray-600">{new Date(image.created_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.image")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.prompt")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.description")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.dateTime")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.password")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.user")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {images.map((image) => (
+                          <tr key={image.id} className="hover:bg-[#3a3a3a] transition-colors">
+                            <td className="px-3 md:px-6 py-4">
+                              <div className="relative w-20 h-20 md:w-24 md:h-24 bg-[#1a1a1a] rounded overflow-hidden cursor-pointer" onClick={() => setSelectedImage(image)}>
+                                <Image src={`http://localhost:8000/api/images/${image.id}`} alt={image.description} fill className="object-cover" unoptimized />
+                              </div>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 max-w-xs">
+                              <p className="text-xs md:text-sm text-gray-300 line-clamp-3">{image.prompt}</p>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 max-w-xs">
+                              <p className="text-xs md:text-sm text-gray-400 line-clamp-3">{image.description}</p>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <p className="text-xs md:text-sm text-gray-300">{new Date(image.created_at).toLocaleString()}</p>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex px-2 py-1 text-xs font-mono rounded bg-blue-900/50 text-blue-200">{image.created_with_password || "N/A"}</span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <p className="text-xs md:text-sm text-gray-400 font-mono">{image.user_guid.substring(0, 8)}...</p>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <button
+                                onClick={() => handleDeleteImage(image.id)}
+                                className="bg-red-600 text-white px-3 py-1.5 rounded text-xs hover:bg-red-700 transition-colors"
+                                disabled={loading}
+                              >
+                                {t("admin.delete")}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -188,46 +315,193 @@ export default function AdminPage() {
 
           {/* Stats Tab */}
           {activeTab === "stats" && stats && (
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
-                <div className="flex items-center">
-                  <div className="text-xl md:text-2xl mr-2 md:mr-3">👥</div>
-                  <div>
-                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.totalUsers")}</p>
-                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.total_users}</p>
+            <div className="space-y-4 md:space-y-6">
+              {/* General Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="text-xl md:text-2xl mr-2 md:mr-3">👥</div>
+                    <div>
+                      <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.totalUsers")}</p>
+                      <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.total_users}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="text-xl md:text-2xl mr-2 md:mr-3">🖼️</div>
+                    <div>
+                      <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.totalImages")}</p>
+                      <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.total_images}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="text-xl md:text-2xl mr-2 md:mr-3">📅</div>
+                    <div>
+                      <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.recentImages")}</p>
+                      <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.recent_images}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                  <div className="flex items-center">
+                    <div className="text-xl md:text-2xl mr-2 md:mr-3">🆕</div>
+                    <div>
+                      <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.newUsers")}</p>
+                      <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.recent_users}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
+              {/* Password Statistics */}
               <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
-                <div className="flex items-center">
-                  <div className="text-xl md:text-2xl mr-2 md:mr-3">🖼️</div>
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100 mb-4">{t("admin.stats.imagesByPassword")}</h3>
+                {stats.password_stats && stats.password_stats.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.password")}</th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.stats.imageCount")}</th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.status")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {stats.password_stats.map((stat, index) => (
+                          <tr key={index} className={stat.is_expired ? "opacity-50" : ""}>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex px-2 py-1 text-xs md:text-sm font-mono rounded bg-blue-900/50 text-blue-200">{stat.password}</span>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm md:text-base text-gray-300 font-semibold">{stat.image_count}</td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  stat.is_expired ? "bg-red-900/50 text-red-200" : "bg-green-900/50 text-green-200"
+                                }`}
+                              >
+                                {stat.is_expired ? t("admin.passwords.expired") : t("admin.passwords.active")}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-center py-4">{t("admin.stats.noPasswordData")}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Passwords Tab */}
+          {activeTab === "passwords" && (
+            <div className="space-y-4 md:space-y-6">
+              {/* Create Password Form */}
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100 mb-4">{t("admin.passwords.create")}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div>
-                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.totalImages")}</p>
-                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.total_images}</p>
+                    <label className="block text-xs md:text-sm text-gray-400 mb-1">{t("admin.passwords.password")}</label>
+                    <input
+                      type="text"
+                      value={newPassword.password}
+                      onChange={(e) => setNewPassword({ ...newPassword, password: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
+                      placeholder="Enter password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm text-gray-400 mb-1">{t("admin.passwords.validHours")}</label>
+                    <input
+                      type="number"
+                      value={newPassword.validHours}
+                      onChange={(e) => setNewPassword({ ...newPassword, validHours: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm text-gray-400 mb-1">{t("admin.passwords.imageLimit")}</label>
+                    <input
+                      type="number"
+                      value={newPassword.imageLimit}
+                      onChange={(e) => setNewPassword({ ...newPassword, imageLimit: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm text-gray-400 mb-1">{t("admin.passwords.suggestionLimit")}</label>
+                    <input
+                      type="number"
+                      value={newPassword.suggestionLimit}
+                      onChange={(e) => setNewPassword({ ...newPassword, suggestionLimit: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
+                      min="1"
+                    />
                   </div>
                 </div>
+                <button
+                  onClick={handleCreatePassword}
+                  disabled={!newPassword.password.trim() || loading}
+                  className="mt-4 bg-blue-600 text-white px-6 py-2.5 rounded font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                >
+                  {loading ? t("admin.passwords.creating") : t("admin.passwords.createButton")}
+                </button>
               </div>
 
-              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
-                <div className="flex items-center">
-                  <div className="text-xl md:text-2xl mr-2 md:mr-3">📅</div>
-                  <div>
-                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.recentImages")}</p>
-                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.recent_images}</p>
+              {/* Passwords List */}
+              {passwords.length === 0 ? (
+                <div className="text-center py-12 bg-[#2a2a2a] rounded-lg">
+                  <div className="text-6xl mb-4">🔑</div>
+                  <h3 className="text-xl font-semibold text-gray-200 mb-2">{t("admin.passwords.noPasswords")}</h3>
+                  <p className="text-gray-400">{t("admin.passwords.noPasswords.desc")}</p>
+                </div>
+              ) : (
+                <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.password")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.validHours")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.imageLimit")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.suggestionLimit")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.expiresAt")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.status")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {passwords.map((pwd, index) => (
+                          <tr key={index} className={pwd.is_expired ? "opacity-50" : ""}>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300 font-mono">{pwd.password}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.valid_hours}h</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.image_limit}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.suggestion_limit}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{new Date(pwd.expires_at).toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  pwd.is_expired ? "bg-red-900/50 text-red-200" : "bg-green-900/50 text-green-200"
+                                }`}
+                              >
+                                {pwd.is_expired ? t("admin.passwords.expired") : t("admin.passwords.active")}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
-                <div className="flex items-center">
-                  <div className="text-xl md:text-2xl mr-2 md:mr-3">🆕</div>
-                  <div>
-                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.newUsers")}</p>
-                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.recent_users}</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </>

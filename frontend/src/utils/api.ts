@@ -24,6 +24,7 @@ export interface ImageData {
   description: string;
   created_at: string;
   updated_at: string;
+  created_with_password?: string;
 }
 
 export interface ApiResponse<T> {
@@ -47,19 +48,21 @@ export const userApi = {
 
 // Images API
 export const imagesApi = {
-  async generateImage(prompt: string, userGuid: string): Promise<ImageData> {
+  async generateImage(prompt: string, userGuid: string, password: string): Promise<ImageData> {
     const response = await api.post("/api/images/generate", {
       prompt,
       user_guid: userGuid,
+      password,
     });
     return response.data;
   },
 
-  async editImage(imageId: string, editPrompt: string, userGuid: string): Promise<ImageData> {
+  async editImage(imageId: string, editPrompt: string, userGuid: string, password: string): Promise<ImageData> {
     const response = await api.post("/api/images/edit", {
       image_id: imageId,
       edit_prompt: editPrompt,
       user_guid: userGuid,
+      password,
     });
     return response.data;
   },
@@ -81,10 +84,12 @@ export const imagesApi = {
 
 // AI API
 export const aiApi = {
-  async suggestPrompts(keyword?: string, language?: string): Promise<{ suggestions: string[] }> {
+  async suggestPrompts(keyword: string | undefined, language: string | undefined, userGuid: string, password: string): Promise<{ suggestions: string[] }> {
     const response = await api.post("/api/ai/suggest-prompts", {
       keyword,
       language,
+      user_guid: userGuid,
+      password,
     });
     return response.data;
   },
@@ -94,10 +99,12 @@ export const aiApi = {
     return response.data;
   },
 
-  async suggestEdits(imageId: string, keyword?: string, language?: string): Promise<{ suggestions: string[] }> {
+  async suggestEdits(imageId: string, keyword: string | undefined, language: string | undefined, userGuid: string, password: string): Promise<{ suggestions: string[] }> {
     const response = await api.post(`/api/ai/suggest-edits?image_id=${imageId}`, {
       keyword,
       language,
+      user_guid: userGuid,
+      password,
     });
     return response.data;
   },
@@ -122,8 +129,65 @@ export const adminApi = {
     total_images: number;
     recent_images: number;
     recent_users: number;
+    password_stats: Array<{
+      password: string;
+      image_count: number;
+      is_expired: boolean;
+    }>;
   }> {
     const response = await api.get("/api/admin/stats", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  async createPassword(
+    token: string,
+    password: string,
+    validHours: number,
+    imageLimit: number,
+    suggestionLimit: number
+  ): Promise<{
+    message: string;
+    password: string;
+    expires_at: string;
+    image_limit: number;
+    suggestion_limit: number;
+  }> {
+    const response = await api.post(
+      "/api/admin/passwords/create",
+      {
+        password,
+        valid_hours: validHours,
+        image_limit: imageLimit,
+        suggestion_limit: suggestionLimit,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data;
+  },
+
+  async getPasswords(token: string): Promise<{
+    passwords: Array<{
+      password: string;
+      valid_hours: number;
+      image_limit: number;
+      suggestion_limit: number;
+      created_at: string;
+      expires_at: string;
+      is_expired: boolean;
+    }>;
+  }> {
+    const response = await api.get("/api/admin/passwords", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  async deleteImage(token: string, imageId: string): Promise<{ message: string }> {
+    const response = await api.delete(`/api/admin/images/${imageId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
