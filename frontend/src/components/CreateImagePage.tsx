@@ -14,21 +14,25 @@ export default function CreateImagePage() {
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<ImageDataType | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateImage = async () => {
     if (!user || !prompt.trim()) return;
 
     setGenerating(true);
+    setImageLoaded(false);
     setSuggestions([]); // Reset suggestions when generating
+    setError(null); // Reset error state
     try {
       const result = await imagesApi.generateImage(prompt, user.guid);
       setGeneratedImage(result);
+      setGenerating(false); // Allow image to render and trigger onLoad
     } catch (error) {
       console.error("Error generating image:", error);
-      alert("Failed to generate image. Please try again.");
-    } finally {
+      setError(t("error.generate"));
       setGenerating(false);
     }
   };
@@ -98,18 +102,38 @@ export default function CreateImagePage() {
 
       {/* Main Content Container */}
       <div className="w-full max-w-2xl space-y-4 md:space-y-6">
-        {/* Show loading state while generating */}
-        {generating && (
+        {/* Error Message */}
+        {error && !generating && (
+          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 md:px-6 py-3 md:py-4 rounded-lg text-center">
+            <p className="text-sm md:text-base font-medium whitespace-pre-line">{error}</p>
+          </div>
+        )}
+
+        {/* Show loading state while generating or loading image */}
+        {(generating || (generatedImage && !imageLoaded)) && !error && (
           <div className="relative aspect-square max-w-md md:max-w-lg mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden flex items-center justify-center shadow-2xl">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 md:h-16 w-12 md:w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
               <p className="text-gray-400 text-base md:text-lg">{t("create.generating")}</p>
             </div>
+            {/* Preload image in background */}
+            {generatedImage && (
+              <Image
+                src={imagesApi.getImageUrl(generatedImage.id)}
+                alt={generatedImage.description}
+                fill
+                className="object-cover opacity-0"
+                unoptimized
+                onLoad={() => {
+                  setImageLoaded(true);
+                }}
+              />
+            )}
           </div>
         )}
 
         {/* Show generated image result */}
-        {!generating && generatedImage && (
+        {generatedImage && imageLoaded && !error && (
           <div className="space-y-4 md:space-y-6">
             <div className="relative aspect-square max-w-md md:max-w-lg mx-auto rounded-lg overflow-hidden shadow-2xl">
               <Image src={imagesApi.getImageUrl(generatedImage.id)} alt={generatedImage.description} fill className="object-cover" unoptimized />
@@ -122,8 +146,10 @@ export default function CreateImagePage() {
                 <button
                   onClick={() => {
                     setGeneratedImage(null);
+                    setImageLoaded(false);
                     setPrompt("");
                     setSuggestions([]);
+                    setError(null);
                   }}
                   className="bg-orange-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-orange-700 transition-colors shadow-lg text-sm md:text-base"
                 >
@@ -140,8 +166,8 @@ export default function CreateImagePage() {
           </div>
         )}
 
-        {/* Show input controls only when not generating and no generated image */}
-        {!generating && !generatedImage && (
+        {/* Show input controls only when not generating/loading and no generated image ready */}
+        {!generating && !(generatedImage && imageLoaded) && (
           <>
             {/* Combined Input Section */}
             <div>

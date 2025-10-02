@@ -19,6 +19,8 @@ export default function EditImagePage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadImage = async () => {
@@ -29,6 +31,7 @@ export default function EditImagePage() {
         const image = result.images.find((img) => img.id === imageId);
         if (image) {
           setSelectedImage(image);
+          setImageLoaded(false);
         }
       } catch (error) {
         console.error("Error loading image:", error);
@@ -71,15 +74,17 @@ export default function EditImagePage() {
     if (!user || !selectedImage || !editPrompt.trim()) return;
 
     setEditing(true);
+    setImageLoaded(false);
     setSuggestions([]); // Reset suggestions when editing
+    setError(null); // Reset error state
     try {
       const result = await imagesApi.editImage(selectedImage.id, editPrompt, user.guid);
       setSelectedImage(result);
       setEditPrompt("");
+      setEditing(false); // Allow image to render and trigger onLoad
     } catch (error) {
       console.error("Error editing image:", error);
-      alert("Failed to edit image. Please try again.");
-    } finally {
+      setError(t("error.edit"));
       setEditing(false);
     }
   };
@@ -137,16 +142,34 @@ export default function EditImagePage() {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] px-4">
       {/* Main Content Container */}
       <div className="w-full max-w-2xl space-y-3 md:space-y-6">
+        {/* Error Message */}
+        {error && !editing && (
+          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 md:px-6 py-3 md:py-4 rounded-lg text-center">
+            <p className="text-sm md:text-base font-medium whitespace-pre-line">{error}</p>
+          </div>
+        )}
+
         {/* Current Image */}
         <div
           className={`relative mx-auto rounded-lg overflow-hidden shadow-2xl transition-all duration-300 ${
             suggestions.length > 0 ? "aspect-square w-full max-w-[min(45vh,90vw)] md:max-w-lg" : "aspect-square max-w-lg"
           }`}
         >
-          <Image src={imagesApi.getImageUrl(selectedImage.id)} alt={selectedImage.description} fill className="object-cover" unoptimized priority />
+          <Image
+            key={selectedImage.id}
+            src={imagesApi.getImageUrl(selectedImage.id)}
+            alt={selectedImage.description}
+            fill
+            className="object-cover"
+            unoptimized
+            priority
+            onLoad={() => {
+              setImageLoaded(true);
+            }}
+          />
 
-          {/* Loading overlay while editing */}
-          {editing && (
+          {/* Loading overlay while editing or loading image */}
+          {(editing || !imageLoaded) && !error && (
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-4"></div>

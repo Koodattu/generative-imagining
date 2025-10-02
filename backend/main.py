@@ -117,20 +117,12 @@ Please create a visually appealing and detailed image that matches this descript
                 # Return the image bytes directly
                 return part.inline_data.data
 
-        # If no image found in response, return a placeholder
-        print("Warning: No image generated in response, returning placeholder")
-        img = Image.new('RGB', (512, 512), color='lightblue')
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        return img_bytes.getvalue()
+        # If no image found in response, raise error
+        raise Exception("No image generated in response")
 
     except Exception as e:
         print(f"Error generating image: {e}")
-        # Return a placeholder image
-        img = Image.new('RGB', (512, 512), color='lightgray')
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        return img_bytes.getvalue()
+        raise Exception(f"Failed to generate image: {str(e)}")
 
 async def describe_image_with_gemini(image_path: str) -> str:
     """Generate description for image using Gemini AI"""
@@ -211,19 +203,12 @@ Please modify the image as requested and return the edited image."""
                 # Return the edited image bytes
                 return part.inline_data.data
 
-        # If no image found in response, return original
-        print("Warning: No edited image in response, returning original")
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        return img_bytes.getvalue()
+        # If no image found in response, raise error
+        raise Exception("No edited image in response")
 
     except Exception as e:
         print(f"Error editing image: {e}")
-        # Return original image as fallback
-        img = Image.open(original_image_path)
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        return img_bytes.getvalue()
+        raise Exception(f"Failed to edit image: {str(e)}")
 
 # API Routes
 
@@ -300,8 +285,11 @@ async def generate_image(data: ImageGenerate):
 
         return ImageResponse(**image_doc)
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating image: {str(e)}")
+        print(f"Failed to generate image: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
 @app.post("/api/images/edit")
 async def edit_image(data: ImageEdit):
@@ -346,8 +334,11 @@ async def edit_image(data: ImageEdit):
 
         return ImageResponse(**new_image_doc)
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error editing image: {str(e)}")
+        print(f"Failed to edit image: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to edit image. Please try again with a different prompt.")
 
 @app.get("/api/images/gallery")
 async def get_user_gallery(user_guid: str):

@@ -118,6 +118,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.loading": "Ladataan...",
     "common.retry": "Yritä uudelleen",
     "common.error": "Käyttäjäistunnon alustus epäonnistui",
+
+    // Errors
+    "error.generate": "Kuvan luominen epäonnistui.\nYritä uudelleen eri kehotteella!",
+    "error.edit": "Kuvan muokkaus epäonnistui.\nYritä uudelleen eri kehotteella!",
   },
   en: {
     // Navigation
@@ -221,6 +225,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.loading": "Loading...",
     "common.retry": "Retry",
     "common.error": "Failed to initialize user session",
+
+    // Errors
+    "error.generate": "Failed to generate image. Please try again with a different prompt!",
+    "error.edit": "Failed to edit image. Please try again with a different prompt!",
   },
 };
 
