@@ -9,21 +9,21 @@ export default function Home() {
   const options = [
     {
       href: "/create",
-      icon: "➕",
+      icon: "✨",
       title: t("home.create"),
       description: t("home.create.desc"),
       color: "bg-orange-600 hover:bg-orange-700",
     },
     {
       href: "/edit",
-      icon: "🖼️",
+      icon: "🎨",
       title: t("home.edit"),
       description: t("home.edit.desc"),
       color: "bg-purple-600 hover:bg-purple-700",
     },
     {
       href: "/gallery",
-      icon: "🖥️",
+      icon: "🖼️",
       title: t("home.gallery"),
       description: t("home.gallery.desc"),
       color: "bg-green-600 hover:bg-green-700",
