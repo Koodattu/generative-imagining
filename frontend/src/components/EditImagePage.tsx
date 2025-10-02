@@ -19,7 +19,7 @@ export default function EditImagePage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(true); // Start as true, only false when editing
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,7 +31,8 @@ export default function EditImagePage() {
         const image = result.images.find((img) => img.id === imageId);
         if (image) {
           setSelectedImage(image);
-          setImageLoaded(false);
+          // Don't set imageLoaded to false here - we're just loading metadata
+          // The Image component will handle its own loading state
         }
       } catch (error) {
         console.error("Error loading image:", error);

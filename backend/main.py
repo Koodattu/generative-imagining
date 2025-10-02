@@ -10,6 +10,7 @@ from typing import List, Optional
 import motor.motor_asyncio
 from pydantic import BaseModel
 import google.genai as genai
+from google.genai import types
 from PIL import Image
 import io
 import aiofiles
@@ -90,6 +91,26 @@ class ImageResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+# Response schemas for structured AI outputs
+SUGGESTIONS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "suggestions": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"}
+        }
+    },
+    "required": ["suggestions"]
+}
+
+DESCRIPTION_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "description": {"type": "STRING"}
+    },
+    "required": ["description"]
+}
+
 # Helper functions
 async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify admin authentication"""
@@ -104,10 +125,16 @@ async def generate_image_with_gemini(prompt: str) -> bytes:
         chat = genai_client.chats.create(model="gemini-2.5-flash-image-preview")
 
         # Send the prompt with explicit instruction to generate an image
-        instruction = f"""Generate a high-quality image based on this prompt: {prompt}
+        instruction = f"""Generate a high-quality, family-friendly image based on this prompt: {prompt}
 
-Please create a visually appealing and detailed image that matches this description.
-        Return the generated image."""
+IMPORTANT GUIDELINES:
+- Content must be appropriate for ages 12-15 (no violence, horror, mature themes, or anything rated 18+)
+- Keep it positive, fun, and suitable for all audiences
+- Focus on real-world subjects, nature, animals, activities, objects, and everyday scenes
+- Avoid abstract or overly surreal content
+
+If the prompt requests inappropriate content, politely decline and do not generate an image.
+Return the generated image."""
 
         response = chat.send_message(instruction)
 
@@ -135,11 +162,16 @@ async def describe_image_with_gemini(image_path: str) -> str:
             model='gemini-2.5-flash-lite',
             contents=[
                 img,
-                "Describe this image in 5-7 words maximum. Be very brief and simple."
-            ]
+                "Describe this image in 5-7 words maximum. Focus on the main physical subjects and objects. Be very brief and simple."
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=DESCRIPTION_SCHEMA,
+            ),
         )
 
-        return response.text
+        result = json.loads(response.text)
+        return result["description"]
     except Exception as e:
         print(f"Error describing image: {e}")
         return "AI-generated image"
@@ -158,27 +190,47 @@ async def suggest_edits_with_gemini(image_path: str, current_description: str, k
                 lang_instruction = " Respond in English."
 
         if keyword:
-            query = f"This image is described as: {current_description}. Generate 3 creative and descriptive edit suggestions based on the keyword '{keyword}'. Each suggestion should be around 6-8 words, providing clear direction for the edit. Keep them inspiring and actionable. Format: just list them, one per line.{lang_instruction}"
+            query = f"""This image shows: {current_description}. Generate exactly 3 simple, practical edit suggestions based on '{keyword}'.
+
+GUIDELINES:
+- Suggest concrete, physical changes (colors, lighting, weather, time of day, adding real objects/animals)
+- Keep it family-friendly and appropriate for ages 12-15
+- Make suggestions grounded and realistic, not abstract or surreal
+- Each suggestion: 5-10 words, clear and actionable{lang_instruction}
+
+Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
         else:
-            query = f"This image is described as: {current_description}. Generate 3 creative and descriptive edit suggestions. Each should be around 6-8 words, providing clear direction for the edit. Keep them inspiring and actionable. Format: just list them, one per line.{lang_instruction}"
+            query = f"""This image shows: {current_description}. Generate exactly 3 simple, practical edit suggestions.
+
+GUIDELINES:
+- Suggest concrete, physical changes (colors, lighting, weather, time of day, adding real objects/animals)
+- Keep it family-friendly and appropriate for ages 12-15
+- Make suggestions grounded and realistic, not abstract or surreal
+- Each suggestion: 5-10 words, clear and actionable{lang_instruction}
+
+Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash-lite',
             contents=[
                 img,
                 query
-            ]
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SUGGESTIONS_SCHEMA,
+            ),
         )
 
-        # Parse suggestions from response
-        suggestions = response.text.split('\n')
-        return [s.strip('- ').strip('1234567890. ').strip() for s in suggestions if s.strip()][:3]
+        # Parse suggestions from structured JSON response
+        result = json.loads(response.text)
+        return result["suggestions"][:3]
     except Exception as e:
         print(f"Error suggesting edits: {e}")
         return [
-            "Add warm lighting",
-            "Make it cooler",
-            "Add more details"
+            "Add golden sunset lighting",
+            "Change to daytime scene",
+            "Add colorful flowers"
         ]
 
 async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> bytes:
@@ -193,7 +245,13 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> 
         # Send the image and edit instruction
         instruction = f"""Edit this image according to the following instruction: {edit_prompt}
 
-Please modify the image as requested and return the edited image."""
+IMPORTANT GUIDELINES:
+- Keep all content family-friendly and appropriate for ages 12-15
+- Focus on realistic, physical changes (lighting, colors, objects, weather, etc.)
+- Avoid creating anything violent, scary, or inappropriate
+
+If the edit request is inappropriate, politely decline and do not modify the image.
+Return the edited image."""
 
         response = chat.send_message([instruction, img])
 
@@ -403,26 +461,44 @@ async def suggest_prompts(data: SuggestPrompts):
                 lang_instruction = " Respond in English."
 
         if data.keyword:
-            query = f"Generate 3 creative and descriptive image prompts based on '{data.keyword}'. Each prompt should be around 6-8 words, providing enough detail to create a vivid mental image. Keep them engaging and inspiring. Format: just list them, one per line.{lang_instruction}"
+            query = f"""Generate exactly 3 fun image prompts based on '{data.keyword}'.
+
+GUIDELINES:
+- Family-friendly content suitable for ages 12-15
+- Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
+- Keep prompts grounded and realistic, not abstract or overly fantastical
+- Each prompt: 5-10 words, clear and descriptive{lang_instruction}
+
+Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
         else:
-            query = f"Generate 3 creative and descriptive random image prompts. Each should be around 6-8 words, providing enough detail to create a vivid mental image. Keep them engaging and inspiring. Format: just list them, one per line.{lang_instruction}"
+            query = f"""Generate exactly 3 fun, random image prompts.
+
+GUIDELINES:
+- Family-friendly content suitable for ages 12-15
+- Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
+- Keep prompts grounded and realistic, not abstract or overly fantastical
+- Each prompt: 5-10 words, clear and descriptive{lang_instruction}
+
+Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash-lite',
-            contents=query
+            contents=query,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SUGGESTIONS_SCHEMA,
+            ),
         )
 
-        # Parse suggestions
-        suggestions = response.text.split('\n')
-        cleaned_suggestions = [s.strip('- ').strip('1234567890. ').strip() for s in suggestions if s.strip()][:3]
-
-        return {"suggestions": cleaned_suggestions}
+        # Parse suggestions from structured JSON response
+        result = json.loads(response.text)
+        return {"suggestions": result["suggestions"][:3]}
 
     except Exception as e:
         return {"suggestions": [
-            "Sunset over mountains",
-            "Magical forest cabin",
-            "Futuristic neon city"
+            "A dog playing in a park",
+            "Beach scene with colorful umbrellas",
+            "Sports car on a mountain road"
         ]}
 
 @app.post("/api/ai/describe-image")
