@@ -122,6 +122,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // Errors
     "error.generate": "Kuvan luominen epäonnistui.\nYritä uudelleen eri kehotteella!",
     "error.edit": "Kuvan muokkaus epäonnistui.\nYritä uudelleen eri kehotteella!",
+    "error.rateLimit": "Liikaa pyyntöjä. Yritä hetken kuluttua uudelleen.",
   },
   en: {
     // Navigation
@@ -229,6 +230,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // Errors
     "error.generate": "Failed to generate image. Please try again with a different prompt!",
     "error.edit": "Failed to edit image. Please try again with a different prompt!",
+    "error.rateLimit": "Too many requests. Please try again in a moment.",
   },
 };
 

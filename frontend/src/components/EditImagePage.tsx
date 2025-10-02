@@ -85,7 +85,13 @@ export default function EditImagePage() {
       setEditing(false); // Allow image to render and trigger onLoad
     } catch (error) {
       console.error("Error editing image:", error);
-      setError(t("error.edit"));
+      // Check if it's a rate limit error (429 status code)
+      const err = error as { response?: { status?: number } };
+      if (err?.response?.status === 429) {
+        setError(t("error.rateLimit"));
+      } else {
+        setError(t("error.edit"));
+      }
       setEditing(false);
     }
   };

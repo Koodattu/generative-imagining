@@ -18,12 +18,19 @@ from pathlib import Path
 import hashlib
 import json
 from dotenv import load_dotenv
+from collections import deque
+from asyncio import Lock
 
 # Load environment variables
 load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(title="Generative Imagining API", version="1.0.0")
+
+# Rate limiting configuration
+GEMINI_RPM_LIMIT = 400  # Requests per minute
+rate_limit_lock = Lock()
+request_timestamps = deque()  # Store timestamps of requests
 
 # CORS middleware
 app.add_middleware(
@@ -112,6 +119,24 @@ DESCRIPTION_SCHEMA = {
 }
 
 # Helper functions
+async def check_rate_limit():
+    """Check if we're within the Gemini API rate limit (400 RPM)"""
+    async with rate_limit_lock:
+        current_time = datetime.utcnow()
+        one_minute_ago = current_time.timestamp() - 60
+
+        # Remove timestamps older than 1 minute
+        while request_timestamps and request_timestamps[0] < one_minute_ago:
+            request_timestamps.popleft()
+
+        # Check if we're at the limit
+        if len(request_timestamps) >= GEMINI_RPM_LIMIT:
+            return False
+
+        # Add current request timestamp
+        request_timestamps.append(current_time.timestamp())
+        return True
+
 async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify admin authentication"""
     if credentials.credentials != ADMIN_PASSWORD:
@@ -121,6 +146,10 @@ async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends
 async def generate_image_with_gemini(prompt: str) -> bytes:
     """Generate image using Gemini AI"""
     try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise Exception("Rate limit exceeded. Please try again in a moment.")
+
         # Using Gemini's native image generation with chat API
         chat = genai_client.chats.create(model="gemini-2.5-flash-image-preview")
 
@@ -154,6 +183,10 @@ Return the generated image."""
 async def describe_image_with_gemini(image_path: str) -> str:
     """Generate description for image using Gemini AI"""
     try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise Exception("Rate limit exceeded. Please try again in a moment.")
+
         # Load image
         img = Image.open(image_path)
 
@@ -179,6 +212,10 @@ async def describe_image_with_gemini(image_path: str) -> str:
 async def suggest_edits_with_gemini(image_path: str, current_description: str, keyword: Optional[str] = None, language: Optional[str] = None) -> List[str]:
     """Suggest edits for an image using Gemini AI"""
     try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise Exception("Rate limit exceeded. Please try again in a moment.")
+
         img = Image.open(image_path)
 
         # Determine language instruction
@@ -236,6 +273,10 @@ Return as a JSON object with a 'suggestions' array containing exactly 3 strings.
 async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> bytes:
     """Edit an existing image using Gemini AI"""
     try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise Exception("Rate limit exceeded. Please try again in a moment.")
+
         # Load the original image
         img = Image.open(original_image_path)
 
@@ -346,7 +387,10 @@ async def generate_image(data: ImageGenerate):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Failed to generate image: {str(e)}")
+        error_message = str(e)
+        if "Rate limit exceeded" in error_message:
+            raise HTTPException(status_code=429, detail="Too many requests. Please try again in a moment.")
+        print(f"Failed to generate image: {error_message}")
         raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
 @app.post("/api/images/edit")
@@ -395,7 +439,10 @@ async def edit_image(data: ImageEdit):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Failed to edit image: {str(e)}")
+        error_message = str(e)
+        if "Rate limit exceeded" in error_message:
+            raise HTTPException(status_code=429, detail="Too many requests. Please try again in a moment.")
+        print(f"Failed to edit image: {error_message}")
         raise HTTPException(status_code=500, detail="Failed to edit image. Please try again with a different prompt.")
 
 @app.get("/api/images/gallery")
@@ -452,6 +499,10 @@ async def delete_image(image_id: str, user_guid: str):
 async def suggest_prompts(data: SuggestPrompts):
     """Get prompt suggestions"""
     try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again in a moment.")
+
         # Determine language instruction
         lang_instruction = ""
         if data.language:

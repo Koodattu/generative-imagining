@@ -32,7 +32,13 @@ export default function CreateImagePage() {
       setGenerating(false); // Allow image to render and trigger onLoad
     } catch (error) {
       console.error("Error generating image:", error);
-      setError(t("error.generate"));
+      // Check if it's a rate limit error (429 status code)
+      const err = error as { response?: { status?: number } };
+      if (err?.response?.status === 429) {
+        setError(t("error.rateLimit"));
+      } else {
+        setError(t("error.generate"));
+      }
       setGenerating(false);
     }
   };
