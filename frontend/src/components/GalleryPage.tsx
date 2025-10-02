@@ -140,9 +140,9 @@ export default function GalleryPage() {
     <>
       <div>
         {/* Header */}
-        <div className="text-center py-8">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">{t("gallery.title")}</h1>
-          <p className="text-gray-400">{t("gallery.subtitle")}</p>
+        <div className="text-center py-4 md:py-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-100 mb-2">{t("gallery.title")}</h1>
+          <p className="text-gray-400 text-sm md:text-base">{t("gallery.subtitle")}</p>
         </div>
 
         {/* Gallery Grid */}
@@ -163,11 +163,11 @@ export default function GalleryPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 md:gap-2">
             {images.map((image, index) => (
               <div
                 key={image.id}
-                className="relative aspect-square bg-[#1a1a1a] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                className="relative aspect-square bg-[#1a1a1a] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
                 onClick={() => openFullscreen(index)}
               >
                 <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} fill className="object-cover" unoptimized />
@@ -190,7 +190,7 @@ export default function GalleryPage() {
           </button>
 
           {/* Main Image Area */}
-          <div className="absolute inset-0 flex items-center justify-center pb-48 md:pb-32">
+          <div className="absolute inset-0 flex items-center justify-center pb-36 md:pb-32">
             {/* Previous Button */}
             <button
               onClick={navigatePrevious}
@@ -202,11 +202,11 @@ export default function GalleryPage() {
             </button>
 
             {/* Image Container with Animation */}
-            <div className="relative w-full h-full flex items-center justify-center px-24 overflow-hidden">
+            <div className="relative w-full h-full flex items-center justify-center px-12 md:px-24 overflow-hidden">
               {/* Outgoing Image */}
               {slideDirection && (
                 <div
-                  className={`absolute inset-0 flex items-center justify-center px-24 transition-all duration-300 ease-in-out ${
+                  className={`absolute inset-0 flex items-center justify-center px-12 md:px-24 transition-all duration-300 ease-in-out ${
                     slideDirection === "left" ? "animate-slide-out-left" : "animate-slide-out-right"
                   }`}
                   style={{
@@ -214,7 +214,7 @@ export default function GalleryPage() {
                     opacity: 0,
                   }}
                 >
-                  <div className="relative" style={{ maxHeight: "calc(100vh - 300px)" }}>
+                  <div className="relative" style={{ maxHeight: "calc(100vh - 240px)" }}>
                     <Image
                       src={imagesApi.getImageUrl(
                         images[slideDirection === "left" ? (currentIndex > 0 ? currentIndex - 1 : images.length - 1) : currentIndex < images.length - 1 ? currentIndex + 1 : 0].id
@@ -243,7 +243,7 @@ export default function GalleryPage() {
                   opacity: 1,
                 }}
               >
-                <div className="relative" style={{ maxHeight: "calc(100vh - 300px)" }}>
+                <div className="relative" style={{ maxHeight: "calc(100vh - 240px)" }}>
                   <Image
                     src={imagesApi.getImageUrl(currentImage.id)}
                     alt={currentImage.description}
@@ -268,20 +268,23 @@ export default function GalleryPage() {
           </div>
 
           {/* Bottom Info Panel */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a] to-transparent pb-20 md:pb-4 pt-8">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a] to-transparent pb-16 md:pb-4 pt-4 md:pt-8">
             {/* Prompt and Buttons */}
-            <div className="max-w-4xl mx-auto px-8 mb-4">
-              <p className="text-white text-center mb-4 text-lg">{currentImage.prompt}</p>
+            <div className="max-w-4xl mx-auto px-4 md:px-8 mb-2 md:mb-4">
+              <p className="text-white text-center mb-2 md:mb-4 text-sm md:text-lg line-clamp-2">{currentImage.prompt}</p>
               <div className="flex justify-center">
-                <button onClick={() => handleEditImage(currentImage.id)} className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 transition-colors">
+                <button
+                  onClick={() => handleEditImage(currentImage.id)}
+                  className="bg-purple-600 text-white px-4 md:px-6 py-1.5 md:py-2 rounded hover:bg-purple-700 transition-colors text-sm md:text-base"
+                >
                   {t("gallery.edit")}
                 </button>
               </div>
             </div>
 
             {/* Thumbnail Strip */}
-            <div className="px-8 pb-2">
-              <div className="flex justify-center items-center space-x-2 overflow-x-auto">
+            <div className="px-4 md:px-8 pb-2">
+              <div className="flex justify-center items-center space-x-1.5 md:space-x-2 overflow-x-auto">
                 {images.map((image, index) => (
                   <div
                     key={image.id}
@@ -297,8 +300,8 @@ export default function GalleryPage() {
                         }, 300);
                       }
                     }}
-                    className={`relative flex-shrink-0 w-16 h-16 rounded cursor-pointer transition-all ${
-                      index === currentIndex ? "ring-2 ring-white scale-110 ring-offset-2 ring-offset-[#1a1a1a]" : "opacity-50 hover:opacity-100"
+                    className={`relative flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded cursor-pointer transition-all ${
+                      index === currentIndex ? "ring-1 md:ring-2 ring-white scale-110 ring-offset-1 md:ring-offset-2 ring-offset-[#1a1a1a]" : "opacity-50 hover:opacity-100"
                     }`}
                   >
                     <Image src={imagesApi.getImageUrl(image.id)} alt="" fill className="object-cover rounded" unoptimized />

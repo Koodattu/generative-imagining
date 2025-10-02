@@ -31,43 +31,43 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
+    <div className="flex items-center justify-center h-[calc(100vh-12rem)] md:min-h-[80vh]">
       <div className="max-w-4xl w-full mx-auto px-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-4 md:mb-8">
           {/* Language Selector */}
-          <div className="flex justify-center gap-3 mb-6">
+          <div className="flex justify-center gap-2 md:gap-3 mb-3 md:mb-6">
             <button
               onClick={() => setLocale("fi")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-all text-sm md:text-base ${
                 locale === "fi" ? "bg-blue-600 text-white shadow-lg scale-105" : "bg-[#2a2a2a] text-gray-400 hover:bg-[#3a3a3a]"
               }`}
               aria-label="Finnish"
             >
-              <span className="text-2xl">🇫🇮</span>
+              <span className="text-xl md:text-2xl">🇫🇮</span>
               <span className="font-medium">Suomi</span>
             </button>
             <button
               onClick={() => setLocale("en")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-all text-sm md:text-base ${
                 locale === "en" ? "bg-blue-600 text-white shadow-lg scale-105" : "bg-[#2a2a2a] text-gray-400 hover:bg-[#3a3a3a]"
               }`}
               aria-label="English"
             >
-              <span className="text-2xl">🇬🇧</span>
+              <span className="text-xl md:text-2xl">🇬🇧</span>
               <span className="font-medium">English</span>
             </button>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-100 mb-4">{t("home.title")}</h1>
-          <p className="text-gray-400 text-lg">{t("home.subtitle")}</p>
+          <h1 className="text-3xl md:text-5xl font-bold text-gray-100 mb-2 md:mb-4">{t("home.title")}</h1>
+          <p className="text-gray-400 text-base md:text-lg">{t("home.subtitle")}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
           {options.map((option) => (
-            <Link key={option.href} href={option.href} className={`${option.color} rounded-lg p-8 md:p-12 text-center transition-all transform hover:scale-105 active:scale-95`}>
-              <div className="text-6xl mb-4">{option.icon}</div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">{option.title}</h2>
-              <p className="text-white text-opacity-90 text-sm md:text-base">{option.description}</p>
+            <Link key={option.href} href={option.href} className={`${option.color} rounded-lg p-6 md:p-12 text-center transition-all transform hover:scale-105 active:scale-95`}>
+              <div className="text-4xl md:text-6xl mb-2 md:mb-4">{option.icon}</div>
+              <h2 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2">{option.title}</h2>
+              <p className="text-white text-opacity-90 text-xs md:text-base">{option.description}</p>
             </Link>
           ))}
         </div>

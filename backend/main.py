@@ -140,7 +140,7 @@ async def describe_image_with_gemini(image_path: str) -> str:
 
         # Generate description using Gemini
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-lite',
             contents=[
                 img,
                 "Describe this image in 5-7 words maximum. Be very brief and simple."
@@ -171,7 +171,7 @@ async def suggest_edits_with_gemini(image_path: str, current_description: str, k
             query = f"This image is described as: {current_description}. Generate 3 creative and descriptive edit suggestions. Each should be around 6-8 words, providing clear direction for the edit. Keep them inspiring and actionable. Format: just list them, one per line.{lang_instruction}"
 
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-lite',
             contents=[
                 img,
                 query
@@ -417,7 +417,7 @@ async def suggest_prompts(data: SuggestPrompts):
             query = f"Generate 3 creative and descriptive random image prompts. Each should be around 6-8 words, providing enough detail to create a vivid mental image. Keep them engaging and inspiring. Format: just list them, one per line.{lang_instruction}"
 
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-lite',
             contents=query
         )
 

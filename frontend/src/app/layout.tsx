@@ -27,11 +27,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#1a1a1a] min-h-screen`}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#1a1a1a] min-h-screen overflow-x-hidden`}>
         <LocaleProvider>
           <UserProvider>
             <Navigation />
-            <main className="container mx-auto px-4 py-8 pb-24 md:pb-8">{children}</main>
+            <main className="container mx-auto px-4 py-4 pb-20 md:py-8 md:pb-8">{children}</main>
           </UserProvider>
         </LocaleProvider>
       </body>

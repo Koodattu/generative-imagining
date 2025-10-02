@@ -57,6 +57,14 @@ export default function EditImagePage() {
 
   const handleUseSuggestion = (suggestion: string) => {
     setEditPrompt(suggestion);
+    // Trigger height adjustment after setting the prompt
+    setTimeout(() => {
+      const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = "48px";
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+      }
+    }, 0);
   };
 
   const handleEditImage = async () => {
@@ -101,22 +109,22 @@ export default function EditImagePage() {
   // No image selected - show navigation options
   if (!selectedImage) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-100 mb-2">{t("edit.title")}</h1>
-          <p className="text-gray-400 mb-8">{t("edit.subtitle")}</p>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] px-4">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-100 mb-2">{t("edit.title")}</h1>
+          <p className="text-gray-400 text-sm md:text-base mb-6 md:mb-8">{t("edit.subtitle")}</p>
         </div>
 
-        <div className="flex flex-col gap-4 w-full max-w-md">
+        <div className="flex flex-col gap-3 md:gap-4 w-full max-w-md">
           <button
             onClick={() => router.push("/create")}
-            className="bg-purple-600 text-white px-8 py-4 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-lg text-lg"
+            className="bg-purple-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-lg text-base md:text-lg"
           >
             {t("edit.createNewImage")}
           </button>
           <button
             onClick={() => router.push("/gallery")}
-            className="bg-green-600 text-white px-8 py-4 rounded-full font-medium hover:bg-green-700 transition-colors shadow-lg text-lg"
+            className="bg-green-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-full font-medium hover:bg-green-700 transition-colors shadow-lg text-base md:text-lg"
           >
             {t("edit.selectFromGallery")}
           </button>
@@ -126,11 +134,15 @@ export default function EditImagePage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] px-4">
       {/* Main Content Container */}
-      <div className="w-full max-w-2xl space-y-6">
+      <div className="w-full max-w-2xl space-y-3 md:space-y-6">
         {/* Current Image */}
-        <div className="relative aspect-square max-w-lg mx-auto rounded-lg overflow-hidden shadow-2xl">
+        <div
+          className={`relative mx-auto rounded-lg overflow-hidden shadow-2xl transition-all duration-300 ${
+            suggestions.length > 0 ? "aspect-square w-full max-w-[min(45vh,90vw)] md:max-w-lg" : "aspect-square max-w-lg"
+          }`}
+        >
           <Image src={imagesApi.getImageUrl(selectedImage.id)} alt={selectedImage.description} fill className="object-cover" unoptimized priority />
 
           {/* Loading overlay while editing */}
@@ -147,7 +159,7 @@ export default function EditImagePage() {
         {/* Image prompt description */}
         {!editing && (
           <div className="text-center">
-            <p className="text-gray-100 text-lg italic px-4">&ldquo;{selectedImage.prompt}&rdquo;</p>
+            <p className="text-gray-100 text-sm md:text-lg italic px-4 line-clamp-2">&ldquo;{selectedImage.prompt}&rdquo;</p>
           </div>
         )}
 
@@ -158,33 +170,34 @@ export default function EditImagePage() {
             <div>
               <textarea
                 value={editPrompt}
-                onChange={(e) => setEditPrompt(e.target.value)}
+                onChange={(e) => {
+                  setEditPrompt(e.target.value);
+                  // Adjust height on change as well
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "48px";
+                  target.style.height = Math.min(target.scrollHeight, 120) + "px";
+                }}
                 placeholder={t("edit.prompt.placeholder")}
-                className="w-full px-6 py-4 bg-[#2a2a2a] text-gray-100 border border-gray-600 rounded-full focus:outline-none focus:border-purple-500 focus:bg-[#303030] resize-none overflow-hidden placeholder-gray-500 transition-all shadow-lg"
+                className="w-full px-4 md:px-6 py-3 md:py-4 bg-[#2a2a2a] text-gray-100 border border-gray-600 rounded-full focus:outline-none focus:border-purple-500 focus:bg-[#303030] resize-none overflow-hidden placeholder-gray-500 transition-all shadow-lg text-sm md:text-base"
                 style={{
-                  minHeight: "56px",
-                  maxHeight: "200px",
+                  minHeight: "48px",
+                  maxHeight: "120px",
                   height: "auto",
                 }}
                 rows={1}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = "56px";
-                  target.style.height = Math.min(target.scrollHeight, 200) + "px";
-                }}
                 disabled={loadingSuggestions}
               />
 
               {/* Button Group */}
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-2 md:gap-3 mt-3 md:mt-4">
                 <button
                   onClick={handleGetSuggestions}
                   disabled={loadingSuggestions || !editPrompt.trim()}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 bg-blue-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {loadingSuggestions ? (
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white mr-2"></div>
                       {t("create.loading")}
                     </div>
                   ) : (
@@ -194,7 +207,7 @@ export default function EditImagePage() {
                 <button
                   onClick={handleEditImage}
                   disabled={!editPrompt.trim() || loadingSuggestions}
-                  className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-full font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 bg-purple-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {t("edit.editImage")}
                 </button>
@@ -203,14 +216,14 @@ export default function EditImagePage() {
 
             {/* Suggestions List */}
             {suggestions.length > 0 && (
-              <div className="space-y-3 mt-8">
-                <p className="text-center text-sm text-gray-400 font-medium">{t("create.tapIdea")}</p>
-                <div className="flex flex-col gap-3">
+              <div className="space-y-2 md:space-y-3">
+                <p className="text-center text-xs md:text-sm text-gray-400 font-medium">{t("create.tapIdea")}</p>
+                <div className="flex flex-col gap-2 md:gap-3 max-h-[25vh] md:max-h-none overflow-y-auto scrollbar-thin">
                   {suggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       onClick={() => handleUseSuggestion(suggestion)}
-                      className="w-full px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-medium hover:from-blue-700 hover:to-purple-700 active:scale-95 transition-all shadow-md hover:shadow-lg text-sm"
+                      className="w-full px-4 md:px-5 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-medium hover:from-blue-700 hover:to-purple-700 active:scale-95 transition-all shadow-md hover:shadow-lg text-xs md:text-sm"
                     >
                       {suggestion}
                     </button>

@@ -76,10 +76,10 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="max-w-md mx-auto">
-        <div className="bg-[#2a2a2a] rounded-lg p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-100 mb-2">{t("admin.login")}</h1>
-            <p className="text-gray-400">{t("admin.login.desc")}</p>
+        <div className="bg-[#2a2a2a] rounded-lg p-6 md:p-8">
+          <div className="text-center mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-100 mb-2">{t("admin.login")}</h1>
+            <p className="text-gray-400 text-sm md:text-base">{t("admin.login.desc")}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -88,7 +88,7 @@ export default function AdminPage() {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 placeholder-gray-500"
+              className="w-full p-3 md:p-4 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 placeholder-gray-500 text-sm md:text-base"
               placeholder={t("admin.password.placeholder")}
               required
               disabled={loading}
@@ -97,7 +97,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={loading || !password.trim()}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-blue-600 text-white py-2.5 md:py-3 px-6 rounded font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -115,24 +115,24 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-100">{t("admin.title")}</h1>
-          <p className="text-gray-400">{t("admin.subtitle")}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-100">{t("admin.title")}</h1>
+          <p className="text-gray-400 text-sm md:text-base">{t("admin.subtitle")}</p>
         </div>
-        <button onClick={handleLogout} className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700 transition-colors">
+        <button onClick={handleLogout} className="bg-red-600 text-white px-3 md:px-5 py-1.5 md:py-2 rounded hover:bg-red-700 transition-colors text-sm md:text-base">
           {t("admin.logout")}
         </button>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-700">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-4 md:space-x-8">
           <button
             onClick={() => setActiveTab("images")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm ${
               activeTab === "images" ? "border-blue-500 text-blue-500" : "border-transparent text-gray-400 hover:text-gray-300"
             }`}
           >
@@ -140,7 +140,7 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => setActiveTab("stats")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm ${
               activeTab === "stats" ? "border-blue-500 text-blue-500" : "border-transparent text-gray-400 hover:text-gray-300"
             }`}
           >
@@ -160,7 +160,7 @@ export default function AdminPage() {
         <>
           {/* Images Tab */}
           {activeTab === "images" && (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {images.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🖼️</div>
@@ -168,16 +168,16 @@ export default function AdminPage() {
                   <p className="text-gray-400">{t("admin.noImages.desc")}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
                   {images.map((image) => (
                     <div key={image.id} className="bg-[#2a2a2a] rounded overflow-hidden hover:bg-[#3a3a3a] transition-colors">
-                      <div className="relative aspect-square bg-[#1a1a1a] cursor-pointer" onClick={() => setSelectedImage(image)}>
+                      <div className="relative aspect-square bg-[#1a1a1a] cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedImage(image)}>
                         <Image src={`http://localhost:8000/api/images/${image.id}`} alt={image.description} fill className="object-cover" unoptimized />
                       </div>
 
-                      <div className="p-3">
-                        <p className="text-sm text-gray-400 line-clamp-2 mb-2">{image.prompt}</p>
-                        <p className="text-xs text-gray-600">{new Date(image.created_at).toLocaleDateString()}</p>
+                      <div className="p-2 md:p-3">
+                        <p className="text-xs md:text-sm text-gray-400 line-clamp-2 mb-1 md:mb-2">{image.prompt}</p>
+                        <p className="text-[10px] md:text-xs text-gray-600">{new Date(image.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
                   ))}
@@ -188,43 +188,43 @@ export default function AdminPage() {
 
           {/* Stats Tab */}
           {activeTab === "stats" && stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#2a2a2a] rounded-lg p-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
                 <div className="flex items-center">
-                  <div className="text-2xl mr-3">👥</div>
+                  <div className="text-xl md:text-2xl mr-2 md:mr-3">👥</div>
                   <div>
-                    <p className="text-sm font-medium text-gray-400">{t("admin.stats.totalUsers")}</p>
-                    <p className="text-2xl font-semibold text-gray-100">{stats.total_users}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.totalUsers")}</p>
+                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.total_users}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#2a2a2a] rounded-lg p-6">
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
                 <div className="flex items-center">
-                  <div className="text-2xl mr-3">🖼️</div>
+                  <div className="text-xl md:text-2xl mr-2 md:mr-3">🖼️</div>
                   <div>
-                    <p className="text-sm font-medium text-gray-400">{t("admin.stats.totalImages")}</p>
-                    <p className="text-2xl font-semibold text-gray-100">{stats.total_images}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.totalImages")}</p>
+                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.total_images}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#2a2a2a] rounded-lg p-6">
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
                 <div className="flex items-center">
-                  <div className="text-2xl mr-3">📅</div>
+                  <div className="text-xl md:text-2xl mr-2 md:mr-3">📅</div>
                   <div>
-                    <p className="text-sm font-medium text-gray-400">{t("admin.stats.recentImages")}</p>
-                    <p className="text-2xl font-semibold text-gray-100">{stats.recent_images}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.recentImages")}</p>
+                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.recent_images}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#2a2a2a] rounded-lg p-6">
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
                 <div className="flex items-center">
-                  <div className="text-2xl mr-3">🆕</div>
+                  <div className="text-xl md:text-2xl mr-2 md:mr-3">🆕</div>
                   <div>
-                    <p className="text-sm font-medium text-gray-400">{t("admin.stats.newUsers")}</p>
-                    <p className="text-2xl font-semibold text-gray-100">{stats.recent_users}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-400">{t("admin.stats.newUsers")}</p>
+                    <p className="text-xl md:text-2xl font-semibold text-gray-100">{stats.recent_users}</p>
                   </div>
                 </div>
               </div>
@@ -235,22 +235,22 @@ export default function AdminPage() {
 
       {/* Image Modal */}
       {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4">
-          <div className="bg-[#2a2a2a] rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-2 md:p-4">
+          <div className="bg-[#2a2a2a] rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+            <div className="p-4 md:p-6">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold text-gray-100">{t("admin.imageDetails")}</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100">{t("admin.imageDetails")}</h3>
                 <button onClick={() => setSelectedImage(null)} className="text-gray-400 hover:text-gray-200 text-2xl">
                   ×
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden">
+              <div className="space-y-3 md:space-y-4">
+                <div className="relative aspect-square max-w-md md:max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden">
                   <Image src={`http://localhost:8000/api/images/${selectedImage.id}`} alt={selectedImage.description} fill className="object-cover" unoptimized />
                 </div>
 
-                <div className="space-y-2 text-sm text-gray-400">
+                <div className="space-y-2 text-xs md:text-sm text-gray-400">
                   <p>
                     <strong className="text-gray-300">{t("admin.prompt")}:</strong> {selectedImage.prompt}
                   </p>
@@ -263,7 +263,10 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-center">
-                  <button onClick={() => setSelectedImage(null)} className="bg-[#3a3a3a] text-gray-200 px-5 py-2 rounded hover:bg-[#4a4a4a] transition-colors">
+                  <button
+                    onClick={() => setSelectedImage(null)}
+                    className="bg-[#3a3a3a] text-gray-200 px-4 md:px-5 py-2 rounded hover:bg-[#4a4a4a] transition-colors text-sm md:text-base"
+                  >
                     {t("admin.close")}
                   </button>
                 </div>
