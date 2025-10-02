@@ -127,12 +127,6 @@ export default function EditImagePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-100 mb-2">{t("edit.title")}</h1>
-        <p className="text-gray-400">{t("edit.subtitle")}</p>
-      </div>
-
       {/* Main Content Container */}
       <div className="w-full max-w-2xl space-y-6">
         {/* Current Image */}

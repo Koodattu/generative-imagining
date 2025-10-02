@@ -33,12 +33,12 @@ const translations: Record<Locale, Record<string, string>> = {
     "home.gallery.desc": "Katso luomuksiasi",
 
     // Create page
-    "create.title": "Luo Kuva",
+    "create.title": "Luo kuva",
     "create.subtitle": "Kuvaile mitä haluat luoda",
     "create.resultTitle": "Kuva Luotu",
     "create.resultSubtitle": "Onnistuiko hyvin?",
     "create.prompt.placeholder": "Kuvaile kuvasi... (esim. 'Auringonlasku vuorten yli lentävien lintujen kanssa')",
-    "create.generate": "Luo Kuva",
+    "create.generate": "Luo kuva",
     "create.generating": "Luodaan...",
     "create.needInspiration": "Tarvitsetko inspiraatiota?",
     "create.getIdeas": "Hanki ideoita",
