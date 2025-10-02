@@ -313,7 +313,7 @@ async def edit_image(data: ImageEdit):
             raise HTTPException(status_code=404, detail="Image not found")
 
         # Create combined prompt for context
-        combined_prompt = f"Based on the original prompt '{original_image['prompt']}': {data.edit_prompt}"
+        combined_prompt = f"'{original_image['prompt']}' + '{data.edit_prompt}'"
 
         # Edit the image using the chat-based editing function
         image_data = await edit_image_with_gemini(original_image['file_path'], data.edit_prompt)
