@@ -9,14 +9,13 @@ import Image from "next/image";
 
 export default function CreateImagePage() {
   const { user, loading } = useUser();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<ImageDataType | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [keyword, setKeyword] = useState("");
 
   const handleGenerateImage = async () => {
     if (!user || !prompt.trim()) return;
@@ -36,7 +35,7 @@ export default function CreateImagePage() {
   const handleGetSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
-      const result = await aiApi.suggestPrompts(keyword || undefined);
+      const result = await aiApi.suggestPrompts(prompt.trim() || undefined, locale);
       setSuggestions(result.suggestions);
     } catch (error) {
       console.error("Error getting suggestions:", error);
@@ -79,102 +78,119 @@ export default function CreateImagePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-100 mb-2">{t("create.title")}</h1>
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-gray-100 mb-2">{t("create.title")}</h1>
         <p className="text-gray-400">{t("create.subtitle")}</p>
       </div>
 
-      {/* Main Input Section */}
-      <div>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder={t("create.prompt.placeholder")}
-          className="w-full p-4 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 resize-vertical min-h-[120px] placeholder-gray-500"
-          disabled={generating}
-        />
-
-        <button
-          onClick={handleGenerateImage}
-          disabled={generating || !prompt.trim()}
-          className="w-full mt-4 bg-blue-600 text-white py-3 px-6 rounded font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
-        >
-          {generating ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              {t("create.generating")}
-            </div>
-          ) : (
-            t("create.generate")
-          )}
-        </button>
-      </div>
-
-      {/* Suggestions Input and Button */}
-      {suggestions.length === 0 && !generating && (
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Keyword (optional)"
-            className="flex-1 p-3 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 placeholder-gray-500"
-            disabled={loadingSuggestions}
+      {/* Main Content Container */}
+      <div className="w-full max-w-2xl space-y-6">
+        {/* Combined Input Section */}
+        <div>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={t("create.describeYourImage")}
+            className="w-full px-6 py-4 bg-[#2a2a2a] text-gray-100 border border-gray-600 rounded-full focus:outline-none focus:border-blue-500 focus:bg-[#303030] resize-none overflow-hidden placeholder-gray-500 transition-all shadow-lg"
+            style={{
+              minHeight: "56px",
+              maxHeight: "200px",
+              height: "auto",
+            }}
+            rows={1}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = "56px";
+              target.style.height = Math.min(target.scrollHeight, 200) + "px";
+            }}
+            disabled={generating || loadingSuggestions}
           />
-          <button
-            onClick={handleGetSuggestions}
-            disabled={loadingSuggestions}
-            className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 disabled:bg-gray-700 transition-colors whitespace-nowrap"
-          >
-            {loadingSuggestions ? t("create.loading") : t("create.getIdeas")}
-          </button>
-        </div>
-      )}
 
-      {suggestions.length > 0 && (
-        <div className="space-y-2">
-          {suggestions.map((suggestion, index) => (
+          {/* Button Group */}
+          <div className="flex gap-3 mt-4">
             <button
-              key={index}
-              onClick={() => handleUseSuggestion(suggestion)}
-              className="w-full text-left p-3 bg-[#1a1a1a] text-gray-300 rounded hover:bg-[#3a3a3a] hover:text-gray-100 transition-colors"
+              onClick={handleGetSuggestions}
+              disabled={loadingSuggestions || generating || !prompt.trim()}
+              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
             >
-              {suggestion}
+              {loadingSuggestions ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  {t("create.loading")}
+                </div>
+              ) : (
+                t("create.getIdeas")
+              )}
             </button>
-          ))}
-        </div>
-      )}
-
-      {/* Generated Image */}
-      {generatedImage && (
-        <div className="bg-[#2a2a2a] rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-100 mb-4">{t("create.generatedImage")}</h2>
-
-          <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden mb-4">
-            <Image src={imagesApi.getImageUrl(generatedImage.id)} alt={generatedImage.description} fill className="object-cover" unoptimized />
-          </div>
-
-          <div className="text-center space-y-2 mb-4">
-            <p className="text-sm text-gray-400">
-              <strong className="text-gray-300">{t("create.prompt")}:</strong> {generatedImage.prompt}
-            </p>
-            <p className="text-sm text-gray-400">
-              <strong className="text-gray-300">{t("create.description")}:</strong> {generatedImage.description}
-            </p>
-          </div>
-
-          <div className="flex gap-3 justify-center">
-            <button onClick={() => setGeneratedImage(null)} className="bg-[#3a3a3a] text-gray-200 px-5 py-2 rounded hover:bg-[#4a4a4a] transition-colors">
-              {t("create.createAnother")}
-            </button>
-            <button onClick={() => router.push(`/edit?imageId=${generatedImage.id}`)} className="bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700 transition-colors">
-              {t("create.editThisImage")}
+            <button
+              onClick={handleGenerateImage}
+              disabled={generating || !prompt.trim() || loadingSuggestions}
+              className="flex-1 bg-orange-600 text-white py-3 px-6 rounded-full font-medium hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+            >
+              {generating ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  {t("create.generating")}
+                </div>
+              ) : (
+                t("create.generate")
+              )}
             </button>
           </div>
         </div>
-      )}
+
+        {/* Suggestions List */}
+        {suggestions.length > 0 && (
+          <div className="space-y-3 mt-8">
+            <p className="text-center text-sm text-gray-400 font-medium">{t("create.tapIdea")}</p>
+            <div className="flex flex-col gap-3">
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleUseSuggestion(suggestion)}
+                  className="w-full px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-medium hover:from-blue-700 hover:to-purple-700 active:scale-95 transition-all shadow-md hover:shadow-lg text-sm"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Generated Image */}
+        {generatedImage && (
+          <div className="bg-[#2a2a2a] rounded-lg p-6 mt-8">
+            <h2 className="text-xl font-semibold text-gray-100 mb-4">{t("create.generatedImage")}</h2>
+
+            <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden mb-4">
+              <Image src={imagesApi.getImageUrl(generatedImage.id)} alt={generatedImage.description} fill className="object-cover" unoptimized />
+            </div>
+
+            <div className="text-center space-y-2 mb-4">
+              <p className="text-sm text-gray-400">
+                <strong className="text-gray-300">{t("create.prompt")}:</strong> {generatedImage.prompt}
+              </p>
+              <p className="text-sm text-gray-400">
+                <strong className="text-gray-300">{t("create.description")}:</strong> {generatedImage.description}
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <button onClick={() => setGeneratedImage(null)} className="bg-[#3a3a3a] text-gray-200 px-5 py-2 rounded hover:bg-[#4a4a4a] transition-colors">
+                {t("create.createAnother")}
+              </button>
+              <button
+                onClick={() => router.push(`/edit?imageId=${generatedImage.id}`)}
+                className="bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700 transition-colors"
+              >
+                {t("create.editThisImage")}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -72,9 +72,11 @@ class ImageEdit(BaseModel):
 
 class SuggestPrompts(BaseModel):
     keyword: Optional[str] = None
+    language: Optional[str] = None
 
 class SuggestEdits(BaseModel):
     keyword: Optional[str] = None
+    language: Optional[str] = None
 
 class AdminLogin(BaseModel):
     password: str
@@ -150,15 +152,23 @@ async def describe_image_with_gemini(image_path: str) -> str:
         print(f"Error describing image: {e}")
         return "AI-generated image"
 
-async def suggest_edits_with_gemini(image_path: str, current_description: str, keyword: Optional[str] = None) -> List[str]:
+async def suggest_edits_with_gemini(image_path: str, current_description: str, keyword: Optional[str] = None, language: Optional[str] = None) -> List[str]:
     """Suggest edits for an image using Gemini AI"""
     try:
         img = Image.open(image_path)
 
+        # Determine language instruction
+        lang_instruction = ""
+        if language:
+            if language.lower() == "fi":
+                lang_instruction = " Respond in Finnish."
+            elif language.lower() == "en":
+                lang_instruction = " Respond in English."
+
         if keyword:
-            query = f"This image is described as: {current_description}. Generate 3 very short edit suggestions based on the keyword '{keyword}'. Each suggestion must be 5 words or less. Keep them simple. Format: just list them, one per line."
+            query = f"This image is described as: {current_description}. Generate 3 creative and descriptive edit suggestions based on the keyword '{keyword}'. Each suggestion should be around 6-8 words, providing clear direction for the edit. Keep them inspiring and actionable. Format: just list them, one per line.{lang_instruction}"
         else:
-            query = f"This image is described as: {current_description}. Generate 3 very short edit suggestions. Each must be 5 words or less. Keep them simple. Format: just list them, one per line."
+            query = f"This image is described as: {current_description}. Generate 3 creative and descriptive edit suggestions. Each should be around 6-8 words, providing clear direction for the edit. Keep them inspiring and actionable. Format: just list them, one per line.{lang_instruction}"
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash',
@@ -222,11 +232,11 @@ async def root():
     return {"message": "Generative Imagining API is running!"}
 
 # User Management Endpoints
-@app.get("/api/user/identify")
-async def identify_user(data: UserIdentify = None):
+@app.post("/api/user/identify")
+async def identify_user(data: UserIdentify):
     """Get or create user by GUID"""
     # If GUID provided, verify it exists
-    if data and data.guid:
+    if data.guid:
         user = await users_collection.find_one({"guid": data.guid})
         if user:
             return UserResponse(guid=user["guid"])
@@ -393,10 +403,18 @@ async def delete_image(image_id: str, user_guid: str):
 async def suggest_prompts(data: SuggestPrompts):
     """Get prompt suggestions"""
     try:
+        # Determine language instruction
+        lang_instruction = ""
+        if data.language:
+            if data.language.lower() == "fi":
+                lang_instruction = " Respond in Finnish."
+            elif data.language.lower() == "en":
+                lang_instruction = " Respond in English."
+
         if data.keyword:
-            query = f"Generate 3 very short image prompts based on '{data.keyword}'. Each prompt must be 5 words or less. Keep them simple and creative. Format: just list them, one per line."
+            query = f"Generate 3 creative and descriptive image prompts based on '{data.keyword}'. Each prompt should be around 6-8 words, providing enough detail to create a vivid mental image. Keep them engaging and inspiring. Format: just list them, one per line.{lang_instruction}"
         else:
-            query = "Generate 3 random very short image prompts. Each must be 5 words or less. Keep them simple and creative. Format: just list them, one per line."
+            query = f"Generate 3 creative and descriptive random image prompts. Each should be around 6-8 words, providing enough detail to create a vivid mental image. Keep them engaging and inspiring. Format: just list them, one per line.{lang_instruction}"
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash',
@@ -447,7 +465,7 @@ async def suggest_edits(image_id: str, data: SuggestEdits):
                 {"$set": {"description": description}}
             )
 
-        suggestions = await suggest_edits_with_gemini(image["file_path"], description, data.keyword)
+        suggestions = await suggest_edits_with_gemini(image["file_path"], description, data.keyword, data.language)
 
         return {"suggestions": suggestions}
 

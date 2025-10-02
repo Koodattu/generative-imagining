@@ -33,8 +33,8 @@ export interface ApiResponse<T> {
 // User API
 export const userApi = {
   async identifyUser(guid?: string): Promise<User> {
-    const response = await api.get("/api/user/identify", {
-      data: guid ? { guid } : undefined,
+    const response = await api.post("/api/user/identify", {
+      guid: guid || null,
     });
     return response.data;
   },
@@ -81,9 +81,10 @@ export const imagesApi = {
 
 // AI API
 export const aiApi = {
-  async suggestPrompts(keyword?: string): Promise<{ suggestions: string[] }> {
+  async suggestPrompts(keyword?: string, language?: string): Promise<{ suggestions: string[] }> {
     const response = await api.post("/api/ai/suggest-prompts", {
       keyword,
+      language,
     });
     return response.data;
   },
@@ -93,9 +94,10 @@ export const aiApi = {
     return response.data;
   },
 
-  async suggestEdits(imageId: string, keyword?: string): Promise<{ suggestions: string[] }> {
+  async suggestEdits(imageId: string, keyword?: string, language?: string): Promise<{ suggestions: string[] }> {
     const response = await api.post(`/api/ai/suggest-edits?image_id=${imageId}`, {
       keyword,
+      language,
     });
     return response.data;
   },

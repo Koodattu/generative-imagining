@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export type Locale = "fi" | "en";
 
@@ -42,11 +42,13 @@ const translations: Record<Locale, Record<string, string>> = {
     "create.getIdeas": "Hanki Ideoita",
     "create.loading": "Ladataan...",
     "create.clickSuggestion": "Klikkaa ehdotusta käyttääksesi sitä:",
+    "create.tapIdea": "💡 Napauta ideaa käyttääksesi sitä",
     "create.generatedImage": "Luotu Kuva",
     "create.prompt": "Kehote",
     "create.description": "Kuvaus",
     "create.createAnother": "Luo Toinen",
     "create.editThisImage": "Muokkaa Tätä Kuvaa",
+    "create.describeYourImage": "Kuvaile kuvasi",
 
     // Edit page
     "edit.title": "Muokkaa Kuvaa",
@@ -141,11 +143,13 @@ const translations: Record<Locale, Record<string, string>> = {
     "create.getIdeas": "Get Ideas",
     "create.loading": "Loading...",
     "create.clickSuggestion": "Click a suggestion to use it:",
+    "create.tapIdea": "💡 Tap an idea to use it",
     "create.generatedImage": "Generated Image",
     "create.prompt": "Prompt",
     "create.description": "Description",
     "create.createAnother": "Create Another",
     "create.editThisImage": "Edit This Image",
+    "create.describeYourImage": "Describe your image",
 
     // Edit page
     "edit.title": "Edit Image",
@@ -217,11 +221,25 @@ const translations: Record<Locale, Record<string, string>> = {
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>("fi"); // Finnish is default
 
+  // Load locale from localStorage on mount
+  useEffect(() => {
+    const savedLocale = localStorage.getItem("locale") as Locale;
+    if (savedLocale && (savedLocale === "fi" || savedLocale === "en")) {
+      setLocale(savedLocale);
+    }
+  }, []);
+
+  // Save locale to localStorage when it changes
+  const handleSetLocale = (newLocale: Locale) => {
+    setLocale(newLocale);
+    localStorage.setItem("locale", newLocale);
+  };
+
   const t = (key: string): string => {
     return translations[locale][key] || key;
   };
 
-  return <LocaleContext.Provider value={{ locale, setLocale, t }}>{children}</LocaleContext.Provider>;
+  return <LocaleContext.Provider value={{ locale, setLocale: handleSetLocale, t }}>{children}</LocaleContext.Provider>;
 }
 
 export function useLocale() {

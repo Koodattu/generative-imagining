@@ -15,6 +15,7 @@ export default function GalleryPage() {
   const [loadingImages, setLoadingImages] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -52,7 +53,7 @@ export default function GalleryPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex]);
+  }, [currentIndex, images.length, isAnimating]);
 
   const openFullscreen = (index: number) => {
     setCurrentIndex(index);
@@ -65,21 +66,25 @@ export default function GalleryPage() {
   };
 
   const navigatePrevious = () => {
-    if (currentIndex === null) return;
+    if (currentIndex === null || isAnimating) return;
+    setIsAnimating(true);
     setSlideDirection("right");
     setTimeout(() => {
       setCurrentIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
       setSlideDirection(null);
-    }, 150);
+      setIsAnimating(false);
+    }, 300);
   };
 
   const navigateNext = () => {
-    if (currentIndex === null) return;
+    if (currentIndex === null || isAnimating) return;
+    setIsAnimating(true);
     setSlideDirection("left");
     setTimeout(() => {
       setCurrentIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
       setSlideDirection(null);
-    }, 150);
+      setIsAnimating(false);
+    }, 300);
   };
 
   const handleDeleteImage = async (imageId: string) => {
@@ -174,7 +179,7 @@ export default function GalleryPage() {
 
       {/* Fullscreen Gallery View */}
       {currentIndex !== null && currentImage && (
-        <div className="fixed inset-0 z-50 bg-black">
+        <div className="fixed inset-0 z-50 bg-[#1a1a1a] pb-16 md:pb-0">
           {/* Close Button */}
           <button
             onClick={closeFullscreen}
@@ -185,11 +190,12 @@ export default function GalleryPage() {
           </button>
 
           {/* Main Image Area */}
-          <div className="absolute inset-0 flex items-center justify-center pb-32">
+          <div className="absolute inset-0 flex items-center justify-center pb-48 md:pb-32">
             {/* Previous Button */}
             <button
               onClick={navigatePrevious}
-              className="absolute left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
+              disabled={isAnimating}
+              className="absolute left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Previous"
             >
               ‹
@@ -197,10 +203,45 @@ export default function GalleryPage() {
 
             {/* Image Container with Animation */}
             <div className="relative w-full h-full flex items-center justify-center px-24 overflow-hidden">
+              {/* Outgoing Image */}
+              {slideDirection && (
+                <div
+                  className={`absolute inset-0 flex items-center justify-center px-24 transition-all duration-300 ease-in-out ${
+                    slideDirection === "left" ? "animate-slide-out-left" : "animate-slide-out-right"
+                  }`}
+                  style={{
+                    transform: slideDirection === "left" ? "translateX(-100%)" : "translateX(100%)",
+                    opacity: 0,
+                  }}
+                >
+                  <div className="relative" style={{ maxHeight: "calc(100vh - 300px)" }}>
+                    <Image
+                      src={imagesApi.getImageUrl(
+                        images[slideDirection === "left" ? (currentIndex > 0 ? currentIndex - 1 : images.length - 1) : currentIndex < images.length - 1 ? currentIndex + 1 : 0].id
+                      )}
+                      alt=""
+                      width={1024}
+                      height={1024}
+                      className="object-contain max-h-full w-auto"
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Incoming Image */}
               <div
-                className={`relative max-w-4xl max-h-full transition-all duration-300 ${
-                  slideDirection === "left" ? "opacity-0 translate-x-[-100px]" : slideDirection === "right" ? "opacity-0 translate-x-[100px]" : "opacity-100 translate-x-0"
+                className={`relative max-w-4xl max-h-full transition-all duration-300 ease-in-out ${
+                  slideDirection === "left"
+                    ? "animate-slide-in-left opacity-100 translate-x-0"
+                    : slideDirection === "right"
+                    ? "animate-slide-in-right opacity-100 translate-x-0"
+                    : "opacity-100 translate-x-0"
                 }`}
+                style={{
+                  transform: slideDirection ? "translateX(0)" : undefined,
+                  opacity: 1,
+                }}
               >
                 <div className="relative" style={{ maxHeight: "calc(100vh - 300px)" }}>
                   <Image
@@ -218,7 +259,8 @@ export default function GalleryPage() {
             {/* Next Button */}
             <button
               onClick={navigateNext}
-              className="absolute right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
+              disabled={isAnimating}
+              className="absolute right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Next"
             >
               ›
@@ -226,7 +268,7 @@ export default function GalleryPage() {
           </div>
 
           {/* Bottom Info Panel */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black to-transparent pb-4 pt-8">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a] to-transparent pb-20 md:pb-4 pt-8">
             {/* Prompt and Buttons */}
             <div className="max-w-4xl mx-auto px-8 mb-4">
               <p className="text-white text-center mb-4 text-lg">{currentImage.prompt}</p>
@@ -238,22 +280,25 @@ export default function GalleryPage() {
             </div>
 
             {/* Thumbnail Strip */}
-            <div className="px-8">
-              <div className="flex justify-center items-center space-x-2 overflow-x-auto pb-2">
+            <div className="px-8 pb-2">
+              <div className="flex justify-center items-center space-x-2 overflow-x-auto">
                 {images.map((image, index) => (
                   <div
                     key={image.id}
                     onClick={() => {
-                      if (index !== currentIndex) {
-                        setSlideDirection(index > currentIndex ? "left" : "right");
+                      if (index !== currentIndex && !isAnimating) {
+                        const direction = index > currentIndex ? "left" : "right";
+                        setIsAnimating(true);
+                        setSlideDirection(direction);
                         setTimeout(() => {
                           setCurrentIndex(index);
                           setSlideDirection(null);
-                        }, 150);
+                          setIsAnimating(false);
+                        }, 300);
                       }
                     }}
                     className={`relative flex-shrink-0 w-16 h-16 rounded cursor-pointer transition-all ${
-                      index === currentIndex ? "ring-2 ring-white scale-110" : "opacity-50 hover:opacity-100"
+                      index === currentIndex ? "ring-2 ring-white scale-110 ring-offset-2 ring-offset-[#1a1a1a]" : "opacity-50 hover:opacity-100"
                     }`}
                   >
                     <Image src={imagesApi.getImageUrl(image.id)} alt="" fill className="object-cover rounded" unoptimized />

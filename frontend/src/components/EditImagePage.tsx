@@ -9,7 +9,7 @@ import Image from "next/image";
 
 export default function EditImagePage() {
   const { user, loading } = useUser();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const imageId = searchParams.get("imageId");
@@ -77,7 +77,7 @@ export default function EditImagePage() {
 
     setLoadingState("loadingSuggestions", true);
     try {
-      const result = await aiApi.suggestEdits(selectedImage.id, keyword || undefined);
+      const result = await aiApi.suggestEdits(selectedImage.id, keyword || undefined, locale);
       setEditSuggestions(result.suggestions);
     } catch (error) {
       console.error("Error loading edit suggestions:", error);
