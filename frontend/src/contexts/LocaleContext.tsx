@@ -35,6 +35,8 @@ const translations: Record<Locale, Record<string, string>> = {
     // Create page
     "create.title": "Luo Kuva",
     "create.subtitle": "Kuvaile mitä haluat luoda",
+    "create.resultTitle": "Kuva Luotu",
+    "create.resultSubtitle": "Onnistuiko hyvin?",
     "create.prompt.placeholder": "Kuvaile kuvasi... (esim. 'Auringonlasku vuorten yli lentävien lintujen kanssa')",
     "create.generate": "Luo Kuva",
     "create.generating": "Luodaan...",
@@ -136,6 +138,8 @@ const translations: Record<Locale, Record<string, string>> = {
     // Create page
     "create.title": "Create Image",
     "create.subtitle": "Describe what you want to create",
+    "create.resultTitle": "Image Created",
+    "create.resultSubtitle": "Did it turn out great?",
     "create.prompt.placeholder": "Describe your image... (e.g., 'A sunset over mountains with flying birds')",
     "create.generate": "Generate Image",
     "create.generating": "Generating...",
