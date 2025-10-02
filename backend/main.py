@@ -58,6 +58,7 @@ images_collection = db.images
 passwords_collection = db.passwords
 usage_tracking_collection = db.usage_tracking
 moderation_guidelines_collection = db.moderation_guidelines
+moderation_failures_collection = db.moderation_failures
 
 # Initialize Gemini AI
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
@@ -155,9 +156,10 @@ DESCRIPTION_SCHEMA = {
 MODERATION_SCHEMA = {
     "type": "OBJECT",
     "properties": {
-        "is_appropriate": {"type": "BOOLEAN"}
+        "is_appropriate": {"type": "BOOLEAN"},
+        "rejection_reason": {"type": "STRING"}
     },
-    "required": ["is_appropriate"]
+    "required": ["is_appropriate", "rejection_reason"]
 }
 
 # Helper functions
@@ -291,7 +293,9 @@ Evaluate if this prompt is appropriate:
 GUIDELINES:
 {guidelines}
 
-Return true if the prompt is appropriate according to the guidelines, false otherwise."""
+Return a JSON object with:
+- is_appropriate: true if the prompt follows the guidelines, false otherwise
+- rejection_reason: if is_appropriate is false, provide a brief explanation (one sentence) why it was rejected. If is_appropriate is true, set this to an empty string."""
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash-lite',
@@ -303,7 +307,19 @@ Return true if the prompt is appropriate according to the guidelines, false othe
         )
 
         result = json.loads(response.text)
-        return result["is_appropriate"]
+        is_appropriate = result["is_appropriate"]
+
+        # If not appropriate, save to database for admin review
+        if not is_appropriate:
+            rejection_reason = result.get("rejection_reason", "No reason provided")
+            await moderation_failures_collection.insert_one({
+                "prompt": prompt,
+                "rejection_reason": rejection_reason,
+                "is_edit": is_edit,
+                "created_at": datetime.utcnow()
+            })
+
+        return is_appropriate
     except Exception as e:
         print(f"Error moderating content: {e}")
         # On error, be conservative and reject
@@ -963,6 +979,22 @@ async def reset_guidelines(credentials: HTTPAuthorizationCredentials = Depends(v
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error resetting guidelines: {str(e)}")
+
+@app.get("/api/admin/moderation-failures")
+async def get_moderation_failures(credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Get all moderation failures (admin only)"""
+    try:
+        # Get all failures, sorted by most recent first
+        failures_cursor = moderation_failures_collection.find().sort("created_at", -1).limit(500)
+        failures = await failures_cursor.to_list(length=500)
+
+        # Convert ObjectId to string for JSON serialization
+        for failure in failures:
+            failure["_id"] = str(failure["_id"])
+
+        return {"failures": failures}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching moderation failures: {str(e)}")
 
 @app.post("/api/password/validate")
 async def validate_password_endpoint(data: PasswordValidate):

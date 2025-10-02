@@ -254,6 +254,21 @@ export const adminApi = {
     );
     return response.data;
   },
+
+  async getModerationFailures(token: string): Promise<{
+    failures: Array<{
+      _id: string;
+      prompt: string;
+      rejection_reason: string;
+      is_edit: boolean;
+      created_at: string;
+    }>;
+  }> {
+    const response = await api.get("/api/admin/moderation-failures", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 };
 
 // Cookie management

@@ -27,6 +27,14 @@ interface PasswordData {
   is_expired: boolean;
 }
 
+interface ModerationFailure {
+  _id: string;
+  prompt: string;
+  rejection_reason: string;
+  is_edit: boolean;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const { t } = useLocale();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,7 +43,7 @@ export default function AdminPage() {
   const [images, setImages] = useState<ImageDataType[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImageDataType | null>(null);
-  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords" | "guidelines">("images");
+  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords" | "guidelines" | "moderation">("images");
   const [passwords, setPasswords] = useState<PasswordData[]>([]);
   const [newPassword, setNewPassword] = useState({
     password: "",
@@ -46,6 +54,7 @@ export default function AdminPage() {
   const [guidelines, setGuidelines] = useState("");
   const [isDefaultGuidelines, setIsDefaultGuidelines] = useState(true);
   const [guidelinesChanged, setGuidelinesChanged] = useState(false);
+  const [moderationFailures, setModerationFailures] = useState<ModerationFailure[]>([]);
 
   useEffect(() => {
     // Check if already authenticated
@@ -59,11 +68,12 @@ export default function AdminPage() {
   const loadAdminData = async (token: string) => {
     setLoading(true);
     try {
-      const [imagesResult, statsResult, passwordsResult, guidelinesResult] = await Promise.all([
+      const [imagesResult, statsResult, passwordsResult, guidelinesResult, failuresResult] = await Promise.all([
         adminApi.getAllImages(token),
         adminApi.getStats(token),
         adminApi.getPasswords(token),
         adminApi.getModerationGuidelines(token),
+        adminApi.getModerationFailures(token),
       ]);
       setImages(imagesResult.images);
       setStats(statsResult);
@@ -71,6 +81,7 @@ export default function AdminPage() {
       setGuidelines(guidelinesResult.guidelines);
       setIsDefaultGuidelines(guidelinesResult.is_default);
       setGuidelinesChanged(false);
+      setModerationFailures(failuresResult.failures);
       setStats(statsResult);
       setPasswords(passwordsResult.passwords);
     } catch (error) {
@@ -111,6 +122,7 @@ export default function AdminPage() {
     setGuidelines("");
     setIsDefaultGuidelines(true);
     setGuidelinesChanged(false);
+    setModerationFailures([]);
   };
 
   const handleCreatePassword = async () => {
@@ -302,6 +314,14 @@ export default function AdminPage() {
             }`}
           >
             Moderation
+          </button>
+          <button
+            onClick={() => setActiveTab("moderation")}
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm ${
+              activeTab === "moderation" ? "border-blue-500 text-blue-500" : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Failed ({moderationFailures.length})
           </button>
         </nav>
       </div>
@@ -632,6 +652,60 @@ export default function AdminPage() {
                   <p>• Guidelines should be clear, specific, and formatted as bullet points.</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Moderation Failures Tab */}
+          {activeTab === "moderation" && (
+            <div className="space-y-4 md:space-y-6">
+              {moderationFailures.length === 0 ? (
+                <div className="text-center py-12 bg-[#2a2a2a] rounded-lg">
+                  <div className="text-6xl mb-4">✅</div>
+                  <h3 className="text-xl font-semibold text-gray-200 mb-2">No Failed Moderations</h3>
+                  <p className="text-gray-400">All prompts have passed content moderation checks.</p>
+                </div>
+              ) : (
+                <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
+                  <div className="p-4 md:p-6 border-b border-gray-700">
+                    <h3 className="text-lg md:text-xl font-semibold text-gray-100">Failed Content Moderation Attempts</h3>
+                    <p className="text-sm text-gray-400 mt-1">Review prompts that were rejected by the AI moderation system (showing last 500)</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Type</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Prompt</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rejection Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {moderationFailures.map((failure) => (
+                          <tr key={failure._id} className="hover:bg-[#3a3a3a]">
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{new Date(failure.created_at).toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  failure.is_edit ? "bg-blue-900/50 text-blue-200" : "bg-purple-900/50 text-purple-200"
+                                }`}
+                              >
+                                {failure.is_edit ? "Edit" : "Generate"}
+                              </span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 text-xs md:text-sm text-gray-300 max-w-md">
+                              <div className="line-clamp-3">{failure.prompt}</div>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 text-xs md:text-sm text-red-300 max-w-md">
+                              <div className="line-clamp-2">{failure.rejection_reason}</div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
