@@ -136,6 +136,14 @@ DESCRIPTION_SCHEMA = {
     "required": ["description"]
 }
 
+MODERATION_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "is_appropriate": {"type": "BOOLEAN"}
+    },
+    "required": ["is_appropriate"]
+}
+
 # Helper functions
 async def check_rate_limit():
     """Check if we're within the Gemini API rate limit (400 RPM)"""
@@ -226,6 +234,49 @@ async def increment_usage(password: str, user_guid: str, usage_type: str = "imag
             upsert=True
         )
 
+async def moderate_content(prompt: str, is_edit: bool = False) -> bool:
+    """Screen content request for appropriateness using Gemini AI"""
+    try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise Exception("Rate limit exceeded. Please try again in a moment.")
+
+        action = "edit" if is_edit else "generate"
+        moderation_prompt = f"""You are a content moderator for a family-friendly image {action} application for ages 12-15.
+
+Evaluate if this prompt is appropriate:
+"{prompt}"
+
+GUIDELINES:
+- Reject any content with violence, horror, mature themes, or anything rated 18+
+- Reject requests for weapons, gore, scary/disturbing imagery
+- Reject sexual, suggestive, or inappropriate content
+- Reject hate speech, discrimination, or offensive content
+- Accept positive, fun content suitable for all audiences
+- Accept real-world subjects, nature, animals, activities, objects, everyday scenes
+- Slightly abstract or artistic content is OK if family-friendly
+- Lean into the cool factor
+- Teens play games, watch movies, use social media, follow trends
+- We don't want to be super strict but we want to keep it safe and fun, so no drugs, alcohol, sex, bullying or anything illegal
+
+Return true if the prompt is appropriate and safe for ages 12-15, false otherwise."""
+
+        response = genai_client.models.generate_content(
+            model='gemini-2.5-flash-lite',
+            contents=moderation_prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=MODERATION_SCHEMA,
+            ),
+        )
+
+        result = json.loads(response.text)
+        return result["is_appropriate"]
+    except Exception as e:
+        print(f"Error moderating content: {e}")
+        # On error, be conservative and reject
+        return False
+
 async def generate_image_with_gemini(prompt: str) -> bytes:
     """Generate image using Gemini AI"""
     try:
@@ -236,17 +287,8 @@ async def generate_image_with_gemini(prompt: str) -> bytes:
         # Using Gemini's native image generation with chat API
         chat = genai_client.chats.create(model="gemini-2.5-flash-image-preview")
 
-        # Send the prompt with explicit instruction to generate an image
-        instruction = f"""Generate a high-quality, family-friendly image based on this prompt: {prompt}
-
-IMPORTANT GUIDELINES:
-- Content must be appropriate for ages 12-15 (no violence, horror, mature themes, or anything rated 18+)
-- Keep it positive, fun, and suitable for all audiences
-- Focus on real-world subjects, nature, animals, activities, objects, and everyday scenes
-- Avoid abstract or overly surreal content
-
-If the prompt requests inappropriate content, politely decline and do not generate an image.
-Return the generated image."""
+        # Send the prompt to generate the image
+        instruction = f"Generate a high-quality image based on this prompt: {prompt}"
 
         response = chat.send_message(instruction)
 
@@ -316,17 +358,21 @@ GUIDELINES:
 - Suggest concrete, physical changes (colors, lighting, weather, time of day, adding real objects/animals)
 - Keep it family-friendly and appropriate for ages 12-15
 - Make suggestions grounded and realistic, not abstract or surreal
-- Each suggestion: 5-10 words, clear and actionable{lang_instruction}
+- Each suggestion: 10 words, clear and actionable{lang_instruction}
+- The suggestions should be suitable for image generation prompts
+- Lean into the cool factor
 
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
         else:
             query = f"""This image shows: {current_description}. Generate exactly 3 simple, practical edit suggestions.
 
 GUIDELINES:
-- Suggest concrete, physical changes (colors, lighting, weather, time of day, adding real objects/animals)
+- Suggest concrete, physical changes (colors, lighting, weather, time of day, adding real objects/animals, hats, glasses)
 - Keep it family-friendly and appropriate for ages 12-15
 - Make suggestions grounded and realistic, not abstract or surreal
-- Each suggestion: 5-10 words, clear and actionable{lang_instruction}
+- Each suggestion: 10 words, clear and actionable{lang_instruction}
+- The suggestions should be suitable for image editing prompts
+- Lean into the cool factor
 
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
@@ -367,15 +413,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> 
         chat = genai_client.chats.create(model="gemini-2.5-flash-image-preview")
 
         # Send the image and edit instruction
-        instruction = f"""Edit this image according to the following instruction: {edit_prompt}
-
-IMPORTANT GUIDELINES:
-- Keep all content family-friendly and appropriate for ages 12-15
-- Focus on realistic, physical changes (lighting, colors, objects, weather, etc.)
-- Avoid creating anything violent, scary, or inappropriate
-
-If the edit request is inappropriate, politely decline and do not modify the image.
-Return the edited image."""
+        instruction = f"Edit this image according to the following instruction: {edit_prompt}"
 
         response = chat.send_message([instruction, img])
 
@@ -441,6 +479,11 @@ async def generate_image(data: ImageGenerate):
         if not await validate_password(data.password, data.user_guid, "image"):
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
+        # Moderate content before generation
+        is_appropriate = await moderate_content(data.prompt, is_edit=False)
+        if not is_appropriate:
+            raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
+
         # Generate image
         image_data = await generate_image_with_gemini(data.prompt)
 
@@ -496,6 +539,11 @@ async def edit_image(data: ImageEdit):
         original_image = await images_collection.find_one({"id": data.image_id, "user_guid": data.user_guid})
         if not original_image:
             raise HTTPException(status_code=404, detail="Image not found")
+
+        # Moderate content before editing
+        is_appropriate = await moderate_content(data.edit_prompt, is_edit=True)
+        if not is_appropriate:
+            raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
         # Create combined prompt for context
         combined_prompt = f"'{original_image['prompt']}' + '{data.edit_prompt}'"
