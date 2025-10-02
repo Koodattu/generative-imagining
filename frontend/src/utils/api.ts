@@ -78,7 +78,13 @@ export const imagesApi = {
   },
 
   getImageUrl(imageId: string): string {
-    return `${API_BASE_URL}/api/images/${imageId}`;
+    // For Next.js Image component, we need to return an absolute URL
+    // In browser, use window.location.origin to get the current domain
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/api/images/${imageId}`;
+    }
+    // On server-side, use the relative path
+    return `/api/images/${imageId}`;
   },
 };
 
