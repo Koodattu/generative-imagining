@@ -35,7 +35,7 @@ export default function AdminPage() {
   const [images, setImages] = useState<ImageDataType[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImageDataType | null>(null);
-  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords">("images");
+  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords" | "guidelines">("images");
   const [passwords, setPasswords] = useState<PasswordData[]>([]);
   const [newPassword, setNewPassword] = useState({
     password: "",
@@ -43,6 +43,9 @@ export default function AdminPage() {
     imageLimit: 5,
     suggestionLimit: 50,
   });
+  const [guidelines, setGuidelines] = useState("");
+  const [isDefaultGuidelines, setIsDefaultGuidelines] = useState(true);
+  const [guidelinesChanged, setGuidelinesChanged] = useState(false);
 
   useEffect(() => {
     // Check if already authenticated
@@ -56,8 +59,18 @@ export default function AdminPage() {
   const loadAdminData = async (token: string) => {
     setLoading(true);
     try {
-      const [imagesResult, statsResult, passwordsResult] = await Promise.all([adminApi.getAllImages(token), adminApi.getStats(token), adminApi.getPasswords(token)]);
+      const [imagesResult, statsResult, passwordsResult, guidelinesResult] = await Promise.all([
+        adminApi.getAllImages(token),
+        adminApi.getStats(token),
+        adminApi.getPasswords(token),
+        adminApi.getModerationGuidelines(token),
+      ]);
       setImages(imagesResult.images);
+      setStats(statsResult);
+      setPasswords(passwordsResult.passwords);
+      setGuidelines(guidelinesResult.guidelines);
+      setIsDefaultGuidelines(guidelinesResult.is_default);
+      setGuidelinesChanged(false);
       setStats(statsResult);
       setPasswords(passwordsResult.passwords);
     } catch (error) {
@@ -95,6 +108,9 @@ export default function AdminPage() {
     setStats(null);
     setPasswords([]);
     setPassword("");
+    setGuidelines("");
+    setIsDefaultGuidelines(true);
+    setGuidelinesChanged(false);
   };
 
   const handleCreatePassword = async () => {
@@ -149,6 +165,50 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error deleting image:", error);
       alert(t("admin.deleteError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveGuidelines = async () => {
+    if (!guidelines.trim()) {
+      alert("Guidelines cannot be empty");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = cookieManager.getAdminToken();
+      if (!token) return;
+
+      await adminApi.updateModerationGuidelines(token, guidelines);
+      setGuidelinesChanged(false);
+      setIsDefaultGuidelines(false);
+      alert("Guidelines saved successfully!");
+    } catch (error) {
+      console.error("Error saving guidelines:", error);
+      alert("Failed to save guidelines");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetGuidelines = async () => {
+    if (!confirm("Are you sure you want to reset the guidelines to default?")) return;
+
+    setLoading(true);
+    try {
+      const token = cookieManager.getAdminToken();
+      if (!token) return;
+
+      const result = await adminApi.resetModerationGuidelines(token);
+      setGuidelines(result.guidelines);
+      setIsDefaultGuidelines(true);
+      setGuidelinesChanged(false);
+      alert("Guidelines reset to default successfully!");
+    } catch (error) {
+      console.error("Error resetting guidelines:", error);
+      alert("Failed to reset guidelines");
     } finally {
       setLoading(false);
     }
@@ -234,6 +294,14 @@ export default function AdminPage() {
             }`}
           >
             {t("admin.passwords")} ({passwords.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("guidelines")}
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm ${
+              activeTab === "guidelines" ? "border-blue-500 text-blue-500" : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Moderation
           </button>
         </nav>
       </div>
@@ -502,6 +570,68 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Guidelines Tab */}
+          {activeTab === "guidelines" && (
+            <div className="space-y-4 md:space-y-6">
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-lg md:text-xl font-semibold text-gray-100">Content Moderation Guidelines</h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {isDefaultGuidelines ? "Using default guidelines" : "Using custom guidelines"}
+                      {guidelinesChanged && <span className="text-yellow-400 ml-2">• Unsaved changes</span>}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleResetGuidelines}
+                      disabled={loading || isDefaultGuidelines}
+                      className="bg-gray-600 text-white px-3 md:px-4 py-2 rounded font-medium hover:bg-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                    >
+                      Reset to Default
+                    </button>
+                    <button
+                      onClick={handleSaveGuidelines}
+                      disabled={loading || !guidelinesChanged}
+                      className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                    >
+                      {loading ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-400 mb-2">Edit the guidelines below. Each line should start with a dash (-) for bullet points.</label>
+                  <textarea
+                    value={guidelines}
+                    onChange={(e) => {
+                      setGuidelines(e.target.value);
+                      setGuidelinesChanged(true);
+                    }}
+                    className="w-full h-96 px-4 py-3 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 font-mono text-sm"
+                    placeholder="Enter moderation guidelines..."
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="bg-[#1a1a1a] rounded p-4">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-2">Preview:</h4>
+                  <div className="text-xs text-gray-400 whitespace-pre-wrap font-mono">{guidelines}</div>
+                </div>
+              </div>
+
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg font-semibold text-gray-100 mb-3">How it works</h3>
+                <div className="text-sm text-gray-400 space-y-2">
+                  <p>• These guidelines are used by the AI to moderate image generation and editing prompts.</p>
+                  <p>• The AI evaluates each user prompt against these guidelines before processing.</p>
+                  <p>• Changes take effect immediately for all new image requests.</p>
+                  <p>• Guidelines should be clear, specific, and formatted as bullet points.</p>
+                </div>
+              </div>
             </div>
           )}
         </>

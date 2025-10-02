@@ -213,6 +213,47 @@ export const adminApi = {
     });
     return response.data;
   },
+
+  async getModerationGuidelines(token: string): Promise<{
+    guidelines: string;
+    is_default: boolean;
+  }> {
+    const response = await api.get("/api/admin/moderation-guidelines", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  async updateModerationGuidelines(
+    token: string,
+    guidelines: string
+  ): Promise<{
+    message: string;
+    guidelines: string;
+  }> {
+    const response = await api.put(
+      "/api/admin/moderation-guidelines",
+      { guidelines },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data;
+  },
+
+  async resetModerationGuidelines(token: string): Promise<{
+    message: string;
+    guidelines: string;
+  }> {
+    const response = await api.post(
+      "/api/admin/moderation-guidelines/reset",
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data;
+  },
 };
 
 // Cookie management

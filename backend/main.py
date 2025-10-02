@@ -57,9 +57,22 @@ users_collection = db.users
 images_collection = db.images
 passwords_collection = db.passwords
 usage_tracking_collection = db.usage_tracking
+moderation_guidelines_collection = db.moderation_guidelines
 
 # Initialize Gemini AI
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
+
+# Default moderation guidelines
+DEFAULT_MODERATION_GUIDELINES = """- Reject any content with violence, horror, mature themes, or anything rated 18+
+- Reject requests for weapons, gore, scary/disturbing imagery
+- Reject sexual, suggestive, or inappropriate content
+- Reject hate speech, discrimination, or offensive content
+- Accept positive, fun content suitable for all audiences
+- Accept real-world subjects, nature, animals, activities, objects, everyday scenes
+- Slightly abstract or artistic content is OK if family-friendly
+- Lean into the cool factor
+- Teens play games, watch movies, use social media, follow trends
+- We don't want to be super strict but we want to keep it safe and fun, so no drugs, alcohol, sex, bullying or anything illegal"""
 
 # Security
 security = HTTPBearer()
@@ -105,6 +118,9 @@ class PasswordCreate(BaseModel):
 
 class PasswordValidate(BaseModel):
     password: str
+
+class ModerationGuidelinesUpdate(BaseModel):
+    guidelines: str
 
 class ImageResponse(BaseModel):
     id: str
@@ -234,6 +250,29 @@ async def increment_usage(password: str, user_guid: str, usage_type: str = "imag
             upsert=True
         )
 
+async def get_moderation_guidelines() -> str:
+    """Get current moderation guidelines from database, or return default if not set"""
+    guidelines_doc = await moderation_guidelines_collection.find_one({"_id": "current"})
+    if guidelines_doc and "guidelines" in guidelines_doc:
+        return guidelines_doc["guidelines"]
+    return DEFAULT_MODERATION_GUIDELINES
+
+async def update_moderation_guidelines(guidelines: str) -> None:
+    """Update moderation guidelines in database"""
+    await moderation_guidelines_collection.update_one(
+        {"_id": "current"},
+        {"$set": {"guidelines": guidelines, "updated_at": datetime.utcnow()}},
+        upsert=True
+    )
+
+async def reset_moderation_guidelines() -> None:
+    """Reset moderation guidelines to default"""
+    await moderation_guidelines_collection.update_one(
+        {"_id": "current"},
+        {"$set": {"guidelines": DEFAULT_MODERATION_GUIDELINES, "updated_at": datetime.utcnow()}},
+        upsert=True
+    )
+
 async def moderate_content(prompt: str, is_edit: bool = False) -> bool:
     """Screen content request for appropriateness using Gemini AI"""
     try:
@@ -241,25 +280,18 @@ async def moderate_content(prompt: str, is_edit: bool = False) -> bool:
         if not await check_rate_limit():
             raise Exception("Rate limit exceeded. Please try again in a moment.")
 
-        action = "edit" if is_edit else "generate"
-        moderation_prompt = f"""You are a content moderator for a family-friendly image {action} application for ages 12-15.
+        # Get current guidelines from database
+        guidelines = await get_moderation_guidelines()
+
+        moderation_prompt = f"""You are a content moderator for a image generation and editing application.
 
 Evaluate if this prompt is appropriate:
 "{prompt}"
 
 GUIDELINES:
-- Reject any content with violence, horror, mature themes, or anything rated 18+
-- Reject requests for weapons, gore, scary/disturbing imagery
-- Reject sexual, suggestive, or inappropriate content
-- Reject hate speech, discrimination, or offensive content
-- Accept positive, fun content suitable for all audiences
-- Accept real-world subjects, nature, animals, activities, objects, everyday scenes
-- Slightly abstract or artistic content is OK if family-friendly
-- Lean into the cool factor
-- Teens play games, watch movies, use social media, follow trends
-- We don't want to be super strict but we want to keep it safe and fun, so no drugs, alcohol, sex, bullying or anything illegal
+{guidelines}
 
-Return true if the prompt is appropriate and safe for ages 12-15, false otherwise."""
+Return true if the prompt is appropriate according to the guidelines, false otherwise."""
 
         response = genai_client.models.generate_content(
             model='gemini-2.5-flash-lite',
@@ -887,6 +919,50 @@ async def delete_image(image_id: str, credentials: HTTPAuthorizationCredentials 
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting image: {str(e)}")
+
+@app.get("/api/admin/moderation-guidelines")
+async def get_guidelines(credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Get current moderation guidelines (admin only)"""
+    try:
+        guidelines = await get_moderation_guidelines()
+        return {
+            "guidelines": guidelines,
+            "is_default": guidelines == DEFAULT_MODERATION_GUIDELINES
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching guidelines: {str(e)}")
+
+@app.put("/api/admin/moderation-guidelines")
+async def update_guidelines(
+    data: ModerationGuidelinesUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)
+):
+    """Update moderation guidelines (admin only)"""
+    try:
+        if not data.guidelines.strip():
+            raise HTTPException(status_code=400, detail="Guidelines cannot be empty")
+
+        await update_moderation_guidelines(data.guidelines)
+        return {
+            "message": "Guidelines updated successfully",
+            "guidelines": data.guidelines
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating guidelines: {str(e)}")
+
+@app.post("/api/admin/moderation-guidelines/reset")
+async def reset_guidelines(credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Reset moderation guidelines to default (admin only)"""
+    try:
+        await reset_moderation_guidelines()
+        return {
+            "message": "Guidelines reset to default successfully",
+            "guidelines": DEFAULT_MODERATION_GUIDELINES
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error resetting guidelines: {str(e)}")
 
 @app.post("/api/password/validate")
 async def validate_password_endpoint(data: PasswordValidate):
