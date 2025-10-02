@@ -45,12 +45,12 @@ const translations: Record<Locale, Record<string, string>> = {
     "create.loading": "Ladataan...",
     "create.clickSuggestion": "Klikkaa ehdotusta käyttääksesi sitä:",
     "create.tapIdea": "💡 Napauta ideaa käyttääksesi sitä",
-    "create.generatedImage": "Luotu Kuva",
+    "create.generatedImage": "Luotu kuva",
     "create.prompt": "Kehote",
     "create.description": "Kuvaus",
-    "create.createAnother": "Luo Toinen",
-    "create.editThisImage": "Muokkaa Tätä Kuvaa",
-    "create.describeYourImage": "Kuvaile kuvasi",
+    "create.createAnother": "Luo toinen",
+    "create.editThisImage": "Muokkaa tätä kuvaa",
+    "create.describeYourImage": "💡 Kirjoita kuvaideasi tähän",
 
     // Edit page
     "edit.title": "Muokkaa Kuvaa",

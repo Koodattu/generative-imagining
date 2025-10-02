@@ -90,12 +90,10 @@ export default function CreateImagePage() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Show loading state while generating */}
         {generating && (
-          <div className="bg-[#2a2a2a] rounded-lg p-6">
-            <div className="relative aspect-square max-w-lg mx-auto bg-[#1a1a1a] rounded overflow-hidden flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
-                <p className="text-gray-400 text-lg">{t("create.generating")}</p>
-              </div>
+          <div className="relative aspect-square max-w-lg mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden flex items-center justify-center shadow-2xl">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-400 text-lg">{t("create.generating")}</p>
             </div>
           </div>
         )}
@@ -108,7 +106,7 @@ export default function CreateImagePage() {
             </div>
 
             <div className="text-center space-y-4">
-              <p className="text-gray-300 text-base italic px-4">&ldquo;{generatedImage.prompt}&rdquo;</p>
+              <p className="text-gray-100 text-2xl italic px-4">&ldquo;{generatedImage.prompt}&rdquo;</p>
 
               <div className="flex gap-3 justify-center">
                 <button
