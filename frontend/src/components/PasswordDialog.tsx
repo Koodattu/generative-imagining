@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { usePassword } from "@/contexts/PasswordContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/";
 
 export default function PasswordDialog() {
   const { t } = useLocale();
