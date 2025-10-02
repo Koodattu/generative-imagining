@@ -12,6 +12,7 @@ export default function PasswordDialog() {
   const [inputPassword, setInputPassword] = useState("");
   const [validating, setValidating] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isValidated, setIsValidated] = useState(false);
 
   if (!showPasswordDialog) return null;
 
@@ -35,11 +36,7 @@ export default function PasswordDialog() {
       if (data.valid) {
         setPassword(inputPassword);
         setMessage({ type: "success", text: t("password.valid") });
-        setTimeout(() => {
-          setShowPasswordDialog(false);
-          setInputPassword("");
-          setMessage(null);
-        }, 1500);
+        setIsValidated(true);
       } else {
         setMessage({ type: "error", text: t("password.invalid") });
       }
@@ -55,6 +52,14 @@ export default function PasswordDialog() {
     setShowPasswordDialog(false);
     setInputPassword("");
     setMessage(null);
+    setIsValidated(false);
+  };
+
+  const handleGetStarted = () => {
+    setShowPasswordDialog(false);
+    setInputPassword("");
+    setMessage(null);
+    setIsValidated(false);
   };
 
   return (
@@ -76,29 +81,37 @@ export default function PasswordDialog() {
         )}
 
         <div className="space-y-3">
-          <input
-            type="text"
-            value={inputPassword}
-            onChange={(e) => setInputPassword(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleValidate()}
-            placeholder={t("password.placeholder")}
-            className="w-full px-4 py-3 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 placeholder-gray-500"
-            disabled={validating}
-            autoFocus
-          />
+          {!isValidated ? (
+            <>
+              <input
+                type="text"
+                value={inputPassword}
+                onChange={(e) => setInputPassword(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleValidate()}
+                placeholder={t("password.placeholder")}
+                className="w-full px-4 py-3 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                disabled={validating}
+                autoFocus
+              />
 
-          <div className="flex gap-3">
-            <button onClick={handleClose} className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors" disabled={validating}>
-              {t("password.close")}
+              <div className="flex gap-3">
+                <button onClick={handleClose} className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors" disabled={validating}>
+                  {t("password.close")}
+                </button>
+                <button
+                  onClick={handleValidate}
+                  disabled={!inputPassword.trim() || validating}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                >
+                  {validating ? t("password.validating") : t("password.validate")}
+                </button>
+              </div>
+            </>
+          ) : (
+            <button onClick={handleGetStarted} className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 transition-colors shadow-lg">
+              {t("password.getStarted")}
             </button>
-            <button
-              onClick={handleValidate}
-              disabled={!inputPassword.trim() || validating}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
-            >
-              {validating ? t("password.validating") : t("password.validate")}
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

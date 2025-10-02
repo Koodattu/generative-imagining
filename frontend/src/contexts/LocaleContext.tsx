@@ -161,6 +161,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "password.valid": "Salasana kelvollinen, aika aloittaa luominen!",
     "password.invalid": "Virheellinen tai vanhentunut salasana",
     "password.required": "Salasana vaaditaan tähän toimintoon",
+    "password.getStarted": "🚀 Aloitetaan!",
   },
   en: {
     // Navigation
@@ -307,6 +308,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "password.valid": "Password valid, time to start creating!",
     "password.invalid": "Invalid or expired password",
     "password.required": "Password required for this action",
+    "password.getStarted": "🚀 Let's Get Started!",
   },
 };
 

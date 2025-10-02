@@ -1,10 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
+import { usePassword } from "@/contexts/PasswordContext";
 
 export default function Home() {
   const { locale, setLocale, t } = useLocale();
+  const { password, setShowPasswordDialog } = usePassword();
+
+  // Show password dialog on first visit if no password exists
+  useEffect(() => {
+    if (!password) {
+      setShowPasswordDialog(true);
+    }
+  }, [password, setShowPasswordDialog]);
 
   const options = [
     {
