@@ -14,8 +14,8 @@ export default function GalleryPage() {
   const [images, setImages] = useState<ImageDataType[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -36,6 +36,7 @@ export default function GalleryPage() {
     if (user) {
       loadGallery();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -53,38 +54,51 @@ export default function GalleryPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, images.length, isAnimating]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, images.length]);
 
   const openFullscreen = (index: number) => {
     setCurrentIndex(index);
-    setSlideDirection(null);
   };
 
   const closeFullscreen = () => {
     setCurrentIndex(null);
-    setSlideDirection(null);
   };
 
   const navigatePrevious = () => {
-    if (currentIndex === null || isAnimating) return;
-    setIsAnimating(true);
-    setSlideDirection("right");
-    setTimeout(() => {
-      setCurrentIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
-      setSlideDirection(null);
-      setIsAnimating(false);
-    }, 300);
+    if (currentIndex === null) return;
+    setCurrentIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
   };
 
   const navigateNext = () => {
-    if (currentIndex === null || isAnimating) return;
-    setIsAnimating(true);
-    setSlideDirection("left");
-    setTimeout(() => {
-      setCurrentIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
-      setSlideDirection(null);
-      setIsAnimating(false);
-    }, 300);
+    if (currentIndex === null) return;
+    setCurrentIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
+  };
+
+  // Minimum swipe distance (in px) to trigger navigation
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      navigateNext();
+    } else if (isRightSwipe) {
+      navigatePrevious();
+    }
   };
 
   const handleDeleteImage = async (imageId: string) => {
@@ -179,7 +193,7 @@ export default function GalleryPage() {
 
       {/* Fullscreen Gallery View */}
       {currentIndex !== null && currentImage && (
-        <div className="fixed inset-0 z-50 bg-[#1a1a1a] pb-16 md:pb-0">
+        <div className="fixed inset-0 z-50 bg-[#0a0a0a] flex flex-col">
           {/* Close Button */}
           <button
             onClick={closeFullscreen}
@@ -189,93 +203,54 @@ export default function GalleryPage() {
             ×
           </button>
 
-          {/* Main Image Area */}
-          <div className="absolute inset-0 flex items-center justify-center pb-36 md:pb-32">
+          {/* Main Image Area - Takes most space */}
+          <div
+            className="flex-1 flex items-center justify-center relative min-h-0 px-16 md:px-24 py-4"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
             {/* Previous Button */}
             <button
               onClick={navigatePrevious}
-              disabled={isAnimating}
-              className="absolute left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
               aria-label="Previous"
             >
               ‹
             </button>
 
-            {/* Image Container with Animation */}
-            <div className="relative w-full h-full flex items-center justify-center px-12 md:px-24 overflow-hidden">
-              {/* Outgoing Image */}
-              {slideDirection && (
-                <div
-                  className={`absolute inset-0 flex items-center justify-center px-12 md:px-24 transition-all duration-300 ease-in-out ${
-                    slideDirection === "left" ? "animate-slide-out-left" : "animate-slide-out-right"
-                  }`}
-                  style={{
-                    transform: slideDirection === "left" ? "translateX(-100%)" : "translateX(100%)",
-                    opacity: 0,
-                  }}
-                >
-                  <div className="relative" style={{ maxHeight: "calc(100vh - 240px)" }}>
-                    <Image
-                      src={imagesApi.getImageUrl(
-                        images[slideDirection === "left" ? (currentIndex > 0 ? currentIndex - 1 : images.length - 1) : currentIndex < images.length - 1 ? currentIndex + 1 : 0].id
-                      )}
-                      alt=""
-                      width={1024}
-                      height={1024}
-                      className="object-contain max-h-full w-auto"
-                      unoptimized
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Incoming Image */}
-              <div
-                className={`relative max-w-4xl max-h-full transition-all duration-300 ease-in-out ${
-                  slideDirection === "left"
-                    ? "animate-slide-in-left opacity-100 translate-x-0"
-                    : slideDirection === "right"
-                    ? "animate-slide-in-right opacity-100 translate-x-0"
-                    : "opacity-100 translate-x-0"
-                }`}
-                style={{
-                  transform: slideDirection ? "translateX(0)" : undefined,
-                  opacity: 1,
-                }}
-              >
-                <div className="relative" style={{ maxHeight: "calc(100vh - 240px)" }}>
-                  <Image
-                    src={imagesApi.getImageUrl(currentImage.id)}
-                    alt={currentImage.description}
-                    width={1024}
-                    height={1024}
-                    className="object-contain max-h-full w-auto"
-                    unoptimized
-                  />
-                </div>
-              </div>
+            {/* Image Container */}
+            <div className="relative max-w-full max-h-full flex items-center justify-center">
+              <Image
+                key={currentImage.id}
+                src={imagesApi.getImageUrl(currentImage.id)}
+                alt={currentImage.description}
+                width={1024}
+                height={1024}
+                className="object-contain max-w-full max-h-full w-auto h-auto"
+                unoptimized
+              />
             </div>
 
             {/* Next Button */}
             <button
               onClick={navigateNext}
-              disabled={isAnimating}
-              className="absolute right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
               aria-label="Next"
             >
               ›
             </button>
           </div>
 
-          {/* Bottom Info Panel */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a] to-transparent pb-16 md:pb-4 pt-4 md:pt-8">
-            {/* Prompt and Buttons */}
-            <div className="max-w-4xl mx-auto px-4 md:px-8 mb-2 md:mb-4">
-              <p className="text-white text-center mb-2 md:mb-4 text-sm md:text-lg line-clamp-2">{currentImage.prompt}</p>
-              <div className="flex justify-center">
+          {/* Bottom Info Panel - Fixed height */}
+          <div className="flex-shrink-0 bg-[#1a1a1a] border-t border-gray-800">
+            {/* Prompt and Edit Button */}
+            <div className="max-w-4xl mx-auto px-4 md:px-8 py-3 md:py-4">
+              <p className="text-white text-center mb-3 text-sm md:text-base line-clamp-2">{currentImage.prompt}</p>
+              <div className="flex justify-center gap-3">
                 <button
                   onClick={() => handleEditImage(currentImage.id)}
-                  className="bg-purple-600 text-white px-4 md:px-6 py-1.5 md:py-2 rounded hover:bg-purple-700 transition-colors text-sm md:text-base"
+                  className="bg-purple-600 text-white px-4 md:px-6 py-2 rounded hover:bg-purple-700 transition-colors text-sm md:text-base"
                 >
                   {t("gallery.edit")}
                 </button>
@@ -283,29 +258,18 @@ export default function GalleryPage() {
             </div>
 
             {/* Thumbnail Strip */}
-            <div className="px-4 md:px-8 pb-2">
-              <div className="flex justify-center items-center space-x-1.5 md:space-x-2 overflow-x-auto">
+            <div className="px-4 md:px-8 py-3 border-t border-gray-800">
+              <div className="flex justify-center items-center gap-2 overflow-x-auto pb-1">
                 {images.map((image, index) => (
-                  <div
+                  <button
                     key={image.id}
-                    onClick={() => {
-                      if (index !== currentIndex && !isAnimating) {
-                        const direction = index > currentIndex ? "left" : "right";
-                        setIsAnimating(true);
-                        setSlideDirection(direction);
-                        setTimeout(() => {
-                          setCurrentIndex(index);
-                          setSlideDirection(null);
-                          setIsAnimating(false);
-                        }, 300);
-                      }
-                    }}
-                    className={`relative flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded cursor-pointer transition-all ${
-                      index === currentIndex ? "ring-1 md:ring-2 ring-white scale-110 ring-offset-1 md:ring-offset-2 ring-offset-[#1a1a1a]" : "opacity-50 hover:opacity-100"
+                    onClick={() => setCurrentIndex(index)}
+                    className={`relative flex-shrink-0 w-14 h-14 md:w-16 md:h-16 rounded overflow-hidden transition-all ${
+                      index === currentIndex ? "ring-2 ring-white scale-105" : "opacity-60 hover:opacity-100"
                     }`}
                   >
-                    <Image src={imagesApi.getImageUrl(image.id)} alt="" fill className="object-cover rounded" unoptimized />
-                  </div>
+                    <Image src={imagesApi.getImageUrl(image.id)} alt="" fill className="object-cover" unoptimized />
+                  </button>
                 ))}
               </div>
             </div>
