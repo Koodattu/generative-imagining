@@ -27,7 +27,7 @@ export default function GalleryPage() {
         setImages(result.images);
       } catch (error) {
         console.error("Error loading gallery:", error);
-        alert("Failed to load gallery. Please try again.");
+        alert(t("gallery.loadError"));
       } finally {
         setLoadingImages(false);
       }
@@ -104,7 +104,7 @@ export default function GalleryPage() {
       }
     } catch (error) {
       console.error("Error deleting image:", error);
-      alert("Failed to delete image. Please try again.");
+      alert(t("gallery.deleteError"));
     }
   };
 

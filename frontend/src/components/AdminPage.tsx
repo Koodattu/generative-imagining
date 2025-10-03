@@ -150,10 +150,10 @@ export default function AdminPage() {
         bypassWatchdog: false,
       });
 
-      alert("Password created successfully!");
+      alert(t("admin.passwords.createSuccess"));
     } catch (error) {
       console.error("Error creating password:", error);
-      alert("Failed to create password");
+      alert(t("admin.passwords.createError"));
     } finally {
       setLoading(false);
     }
@@ -186,7 +186,7 @@ export default function AdminPage() {
   };
 
   const handleDeletePassword = async (password: string) => {
-    if (!confirm("Are you sure you want to delete this password? This action cannot be undone.")) return;
+    if (!confirm(t("admin.passwords.deleteConfirm"))) return;
 
     setLoading(true);
     try {
@@ -199,10 +199,10 @@ export default function AdminPage() {
       const passwordsResult = await adminApi.getPasswords(token);
       setPasswords(passwordsResult.passwords);
 
-      alert("Password deleted successfully!");
+      alert(t("admin.passwords.deleteSuccess"));
     } catch (error) {
       console.error("Error deleting password:", error);
-      alert("Failed to delete password");
+      alert(t("admin.passwords.deleteError"));
     } finally {
       setLoading(false);
     }
@@ -210,7 +210,7 @@ export default function AdminPage() {
 
   const handleSaveGuidelines = async () => {
     if (!guidelines.trim()) {
-      alert("Guidelines cannot be empty");
+      alert(t("admin.guidelines.emptyError"));
       return;
     }
 
@@ -222,17 +222,17 @@ export default function AdminPage() {
       await adminApi.updateModerationGuidelines(token, guidelines);
       setGuidelinesChanged(false);
       setIsDefaultGuidelines(false);
-      alert("Guidelines saved successfully!");
+      alert(t("admin.guidelines.saveSuccess"));
     } catch (error) {
       console.error("Error saving guidelines:", error);
-      alert("Failed to save guidelines");
+      alert(t("admin.guidelines.saveError"));
     } finally {
       setLoading(false);
     }
   };
 
   const handleResetGuidelines = async () => {
-    if (!confirm("Are you sure you want to reset the guidelines to default?")) return;
+    if (!confirm(t("admin.guidelines.resetConfirm"))) return;
 
     setLoading(true);
     try {
@@ -243,10 +243,10 @@ export default function AdminPage() {
       setGuidelines(result.guidelines);
       setIsDefaultGuidelines(true);
       setGuidelinesChanged(false);
-      alert("Guidelines reset to default successfully!");
+      alert(t("admin.guidelines.resetSuccess"));
     } catch (error) {
       console.error("Error resetting guidelines:", error);
-      alert("Failed to reset guidelines");
+      alert(t("admin.guidelines.resetError"));
     } finally {
       setLoading(false);
     }
@@ -528,7 +528,7 @@ export default function AdminPage() {
                       value={newPassword.password}
                       onChange={(e) => setNewPassword({ ...newPassword, password: e.target.value })}
                       className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
-                      placeholder="Enter password"
+                      placeholder={t("admin.passwords.placeholder")}
                     />
                   </div>
                   <div>
