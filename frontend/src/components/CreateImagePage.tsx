@@ -16,7 +16,6 @@ export default function CreateImagePage() {
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<ImageDataType | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +31,13 @@ export default function CreateImagePage() {
     }
 
     setGenerating(true);
-    setImageLoaded(false);
     setSuggestions([]); // Reset suggestions when generating
     setError(null); // Reset error state
     try {
       const result = await imagesApi.generateImage(prompt, user.guid, password);
       setGeneratedImage(result);
-      setGenerating(false); // Allow image to render and trigger onLoad
+      // Don't set generating to false yet - wait for image to load
+      // The onLoad handler will set generating to false
     } catch (error) {
       console.error("Error generating image:", error);
       // Check if it's a rate limit error (429 status code)
@@ -53,6 +52,7 @@ export default function CreateImagePage() {
         setError(t("error.generate"));
       }
       setGenerating(false);
+      setGeneratedImage(null);
     }
   };
 
@@ -141,36 +141,41 @@ export default function CreateImagePage() {
           </div>
         )}
 
-        {/* Show loading state while generating or loading image */}
-        {(generating || (generatedImage && !imageLoaded)) && !error && (
-          <div className="relative aspect-square max-w-md md:max-w-lg mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden flex items-center justify-center shadow-2xl">
-            {/* Shimmer effect */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute inset-[-100%] -translate-x-full animate-[shimmer_2.5s_infinite] bg-gradient-to-r from-transparent from-40% via-white/25 via-50% to-transparent to-60% rotate-12 origin-center"></div>
-            </div>
-
-            <div className="text-center relative z-10">
-              <div className="animate-spin rounded-full h-12 md:h-16 w-12 md:w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
-              <p className="text-gray-400 text-base md:text-lg">{t("create.generating")}</p>
-            </div>
-            {/* Preload image in background */}
+        {/* Show loading state while generating - image loads behind the overlay */}
+        {generating && !error && (
+          <div className="relative aspect-square max-w-md md:max-w-lg mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden shadow-2xl">
+            {/* Image loading in background (invisible until loaded) */}
             {generatedImage && (
               <Image
                 src={imagesApi.getImageUrl(generatedImage.id)}
                 alt={generatedImage.description}
                 fill
-                className="object-cover opacity-0"
+                className="object-cover"
                 unoptimized
+                priority
                 onLoad={() => {
-                  setImageLoaded(true);
+                  setGenerating(false); // Transition to final view
                 }}
               />
             )}
+
+            {/* Loading overlay */}
+            <div className="absolute inset-0 bg-[#0a0a0a] flex items-center justify-center z-10">
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-[-100%] -translate-x-full animate-[shimmer_2.5s_infinite] bg-gradient-to-r from-transparent from-40% via-white/25 via-50% to-transparent to-60% rotate-12 origin-center"></div>
+              </div>
+
+              <div className="text-center relative z-10">
+                <div className="animate-spin rounded-full h-12 md:h-16 w-12 md:w-16 border-b-4 border-orange-500 mx-auto mb-4"></div>
+                <p className="text-gray-400 text-base md:text-lg">{t("create.generating")}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Show generated image result */}
-        {generatedImage && imageLoaded && !error && (
+        {generatedImage && !generating && !error && (
           <div className="space-y-4 md:space-y-6">
             <div className="relative aspect-square max-w-md md:max-w-lg mx-auto rounded-lg overflow-hidden shadow-2xl">
               <Image src={imagesApi.getImageUrl(generatedImage.id)} alt={generatedImage.description} fill className="object-cover" unoptimized />
@@ -183,7 +188,6 @@ export default function CreateImagePage() {
                 <button
                   onClick={() => {
                     setGeneratedImage(null);
-                    setImageLoaded(false);
                     setPrompt("");
                     setSuggestions([]);
                     setError(null);
@@ -203,8 +207,8 @@ export default function CreateImagePage() {
           </div>
         )}
 
-        {/* Show input controls only when not generating/loading and no generated image ready */}
-        {!generating && !(generatedImage && imageLoaded) && (
+        {/* Show input controls only when not generating and no generated image ready */}
+        {!generating && !generatedImage && (
           <>
             {/* Combined Input Section */}
             <div>

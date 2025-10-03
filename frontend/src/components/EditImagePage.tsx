@@ -21,7 +21,6 @@ export default function EditImagePage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(true); // Start as true, only false when editing
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,14 +94,14 @@ export default function EditImagePage() {
     }
 
     setEditing(true);
-    setImageLoaded(false);
     setSuggestions([]); // Reset suggestions when editing
     setError(null); // Reset error state
     try {
       const result = await imagesApi.editImage(selectedImage.id, editPrompt, user.guid, password);
       setSelectedImage(result);
       setEditPrompt("");
-      setEditing(false); // Allow image to render and trigger onLoad
+      // Don't set editing to false yet - wait for image to load
+      // The onLoad handler will set editing to false
     } catch (error) {
       console.error("Error editing image:", error);
       // Check if it's a rate limit error (429 status code)
@@ -195,12 +194,14 @@ export default function EditImagePage() {
             unoptimized
             priority
             onLoad={() => {
-              setImageLoaded(true);
+              if (editing) {
+                setEditing(false); // Transition to final view
+              }
             }}
           />
 
-          {/* Loading overlay while editing or loading image */}
-          {(editing || !imageLoaded) && !error && (
+          {/* Loading overlay while editing */}
+          {editing && !error && (
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
               {/* Shimmer effect */}
               <div className="absolute inset-0 overflow-hidden">
