@@ -43,7 +43,9 @@ app.add_middleware(
 
 # Environment variables
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_USERNAME = os.getenv("MONGO_USERNAME", "admin")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "securepassword")
+MONGO_URI = os.getenv("MONGO_URI", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@localhost:27017")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 IMAGES_PATH = os.getenv("IMAGES_PATH", "./data/images")
 
