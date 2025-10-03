@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_DATABASE: generative_imagining
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-securepassword}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - mongo_data:/data/db
     ports:
@@ -22,8 +22,8 @@ services:
     restart: unless-stopped
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-securepassword}@mongo:27017/?authSource=admin
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - IMAGES_PATH=/app/data/images
     volumes:
       - ./data/images:/app/data/images
