@@ -118,6 +118,7 @@ class PasswordCreate(BaseModel):
     valid_hours: Optional[int] = 1
     image_limit: Optional[int] = 5
     suggestion_limit: Optional[int] = 50
+    bypass_watchdog: Optional[bool] = False
 
 class PasswordValidate(BaseModel):
     password: str
@@ -189,15 +190,15 @@ async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends
         raise HTTPException(status_code=401, detail="Invalid admin credentials")
     return credentials
 
-async def validate_password(password: str, user_guid: str, usage_type: str = "image") -> bool:
+async def validate_password(password: str, user_guid: str, usage_type: str = "image") -> tuple[bool, bool]:
     """
     Validate password and check usage limits
     usage_type can be 'image' (for generation/editing) or 'suggestion'
-    Returns True if password is valid and user has remaining quota
+    Returns tuple: (is_valid, bypass_watchdog)
     """
     # Admin password always works
     if password == ADMIN_PASSWORD:
-        return True
+        return (True, False)
 
     # Check if password exists and is not expired
     password_doc = await passwords_collection.find_one({
@@ -206,7 +207,9 @@ async def validate_password(password: str, user_guid: str, usage_type: str = "im
     })
 
     if not password_doc:
-        return False
+        return (False, False)
+
+    bypass_watchdog = password_doc.get("bypass_watchdog", False)
 
     # Check usage for this user+password combination
     usage_key = f"{user_guid}:{password}"
@@ -227,12 +230,12 @@ async def validate_password(password: str, user_guid: str, usage_type: str = "im
     # Check limits
     if usage_type == "image":
         if usage_doc["image_count"] >= password_doc["image_limit"]:
-            return False
+            return (False, False)
     elif usage_type == "suggestion":
         if usage_doc["suggestion_count"] >= password_doc["suggestion_limit"]:
-            return False
+            return (False, False)
 
-    return True
+    return (True, bypass_watchdog)
 
 async def increment_usage(password: str, user_guid: str, usage_type: str = "image"):
     """Increment usage counter for user+password combination"""
@@ -526,13 +529,15 @@ async def generate_image(data: ImageGenerate):
             raise HTTPException(status_code=404, detail="User not found")
 
         # Validate password and check limits
-        if not await validate_password(data.password, data.user_guid, "image"):
+        is_valid, bypass_watchdog = await validate_password(data.password, data.user_guid, "image")
+        if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
-        # Moderate content before generation
-        is_appropriate = await moderate_content(data.prompt, is_edit=False)
-        if not is_appropriate:
-            raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
+        # Moderate content before generation (skip if bypass_watchdog is enabled)
+        if not bypass_watchdog:
+            is_appropriate = await moderate_content(data.prompt, is_edit=False)
+            if not is_appropriate:
+                raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
         # Generate image
         image_data = await generate_image_with_gemini(data.prompt)
@@ -582,7 +587,8 @@ async def edit_image(data: ImageEdit):
     """Edit existing image"""
     try:
         # Validate password and check limits
-        if not await validate_password(data.password, data.user_guid, "image"):
+        is_valid, bypass_watchdog = await validate_password(data.password, data.user_guid, "image")
+        if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
         # Get original image
@@ -590,10 +596,11 @@ async def edit_image(data: ImageEdit):
         if not original_image:
             raise HTTPException(status_code=404, detail="Image not found")
 
-        # Moderate content before editing
-        is_appropriate = await moderate_content(data.edit_prompt, is_edit=True)
-        if not is_appropriate:
-            raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
+        # Moderate content before editing (skip if bypass_watchdog is enabled)
+        if not bypass_watchdog:
+            is_appropriate = await moderate_content(data.edit_prompt, is_edit=True)
+            if not is_appropriate:
+                raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
         # Create combined prompt for context
         combined_prompt = f"'{original_image['prompt']}' + '{data.edit_prompt}'"
@@ -697,7 +704,8 @@ async def suggest_prompts(data: SuggestPrompts):
     """Get prompt suggestions"""
     try:
         # Validate password and check limits
-        if not await validate_password(data.password, data.user_guid, "suggestion"):
+        is_valid, _ = await validate_password(data.password, data.user_guid, "suggestion")
+        if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
         # Check rate limit before making API call
@@ -775,7 +783,8 @@ async def suggest_edits(image_id: str, data: SuggestEdits):
     """Get edit suggestions for image"""
     try:
         # Validate password and check limits
-        if not await validate_password(data.password, data.user_guid, "suggestion"):
+        is_valid, _ = await validate_password(data.password, data.user_guid, "suggestion")
+        if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
         image = await images_collection.find_one({"id": image_id})
@@ -878,6 +887,7 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
             "valid_hours": data.valid_hours,
             "image_limit": data.image_limit,
             "suggestion_limit": data.suggestion_limit,
+            "bypass_watchdog": data.bypass_watchdog,
             "created_at": datetime.utcnow(),
             "expires_at": expires_at
         }
@@ -889,7 +899,8 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
             "password": data.password,
             "expires_at": expires_at,
             "image_limit": data.image_limit,
-            "suggestion_limit": data.suggestion_limit
+            "suggestion_limit": data.suggestion_limit,
+            "bypass_watchdog": data.bypass_watchdog
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating password: {str(e)}")

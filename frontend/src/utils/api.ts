@@ -167,13 +167,15 @@ export const adminApi = {
     password: string,
     validHours: number,
     imageLimit: number,
-    suggestionLimit: number
+    suggestionLimit: number,
+    bypassWatchdog: boolean = false
   ): Promise<{
     message: string;
     password: string;
     expires_at: string;
     image_limit: number;
     suggestion_limit: number;
+    bypass_watchdog: boolean;
   }> {
     const response = await api.post(
       "/api/admin/passwords/create",
@@ -182,6 +184,7 @@ export const adminApi = {
         valid_hours: validHours,
         image_limit: imageLimit,
         suggestion_limit: suggestionLimit,
+        bypass_watchdog: bypassWatchdog,
       },
       {
         headers: { Authorization: `Bearer ${token}` },

@@ -50,6 +50,7 @@ export default function AdminPage() {
     validHours: 1,
     imageLimit: 5,
     suggestionLimit: 50,
+    bypassWatchdog: false,
   });
   const [guidelines, setGuidelines] = useState("");
   const [isDefaultGuidelines, setIsDefaultGuidelines] = useState(true);
@@ -133,7 +134,7 @@ export default function AdminPage() {
       const token = cookieManager.getAdminToken();
       if (!token) return;
 
-      await adminApi.createPassword(token, newPassword.password, newPassword.validHours, newPassword.imageLimit, newPassword.suggestionLimit);
+      await adminApi.createPassword(token, newPassword.password, newPassword.validHours, newPassword.imageLimit, newPassword.suggestionLimit, newPassword.bypassWatchdog);
 
       // Reload passwords
       const passwordsResult = await adminApi.getPasswords(token);
@@ -145,6 +146,7 @@ export default function AdminPage() {
         validHours: 1,
         imageLimit: 5,
         suggestionLimit: 50,
+        bypassWatchdog: false,
       });
 
       alert("Password created successfully!");
@@ -534,6 +536,21 @@ export default function AdminPage() {
                       className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
                       min="1"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs md:text-sm text-gray-400 mb-1">Bypass Watchdog</label>
+                    <div className="flex items-center h-[42px]">
+                      <input
+                        type="checkbox"
+                        id="bypassWatchdog"
+                        checked={newPassword.bypassWatchdog}
+                        onChange={(e) => setNewPassword({ ...newPassword, bypassWatchdog: e.target.checked })}
+                        className="w-5 h-5 bg-[#1a1a1a] border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <label htmlFor="bypassWatchdog" className="ml-2 text-xs md:text-sm text-gray-300 cursor-pointer">
+                        Skip content moderation
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <button
