@@ -54,8 +54,8 @@ export default function PasswordDialog() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-[#2a2a2a] rounded-lg max-w-md w-full p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto py-8 sm:items-center sm:py-4">
+      <div className="bg-[#2a2a2a] rounded-lg max-w-md w-full p-6 space-y-4 my-auto">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-100 mb-2">{t("password.title")}</h2>
           <p className="text-gray-400 text-sm">{t("password.description")}</p>
