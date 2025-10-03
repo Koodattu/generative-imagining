@@ -25,6 +25,7 @@ interface PasswordData {
   created_at: string;
   expires_at: string;
   is_expired: boolean;
+  bypass_watchdog: boolean;
 }
 
 interface ModerationFailure {
@@ -179,6 +180,29 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error deleting image:", error);
       alert(t("admin.deleteError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePassword = async (password: string) => {
+    if (!confirm("Are you sure you want to delete this password? This action cannot be undone.")) return;
+
+    setLoading(true);
+    try {
+      const token = cookieManager.getAdminToken();
+      if (!token) return;
+
+      await adminApi.deletePassword(token, password);
+
+      // Reload passwords
+      const passwordsResult = await adminApi.getPasswords(token);
+      setPasswords(passwordsResult.passwords);
+
+      alert("Password deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting password:", error);
+      alert("Failed to delete password");
     } finally {
       setLoading(false);
     }
@@ -579,8 +603,10 @@ export default function AdminPage() {
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.validHours")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.imageLimit")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.suggestionLimit")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Bypass Watchdog</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.expiresAt")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.status")}</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-700">
@@ -590,6 +616,15 @@ export default function AdminPage() {
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.valid_hours}h</td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.image_limit}</td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.suggestion_limit}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  pwd.bypass_watchdog ? "bg-orange-900/50 text-orange-200" : "bg-blue-900/50 text-blue-200"
+                                }`}
+                              >
+                                {pwd.bypass_watchdog ? "Enabled" : "Disabled"}
+                              </span>
+                            </td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{new Date(pwd.expires_at).toLocaleString()}</td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                               <span
@@ -599,6 +634,15 @@ export default function AdminPage() {
                               >
                                 {pwd.is_expired ? t("admin.passwords.expired") : t("admin.passwords.active")}
                               </span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                              <button
+                                onClick={() => handleDeletePassword(pwd.password)}
+                                disabled={loading}
+                                className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm font-medium"
+                              >
+                                Delete
+                              </button>
                             </td>
                           </tr>
                         ))}

@@ -202,9 +202,17 @@ export const adminApi = {
       created_at: string;
       expires_at: string;
       is_expired: boolean;
+      bypass_watchdog: boolean;
     }>;
   }> {
     const response = await api.get("/api/admin/passwords", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  async deletePassword(token: string, password: string): Promise<{ message: string }> {
+    const response = await api.delete(`/api/admin/passwords/${encodeURIComponent(password)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;

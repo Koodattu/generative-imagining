@@ -892,7 +892,12 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
             "expires_at": expires_at
         }
 
-        await passwords_collection.insert_one(password_doc)
+        # Use update_one with upsert to overwrite existing password
+        await passwords_collection.update_one(
+            {"password": data.password},
+            {"$set": password_doc},
+            upsert=True
+        )
 
         return {
             "message": "Password created successfully",
@@ -918,12 +923,32 @@ async def get_passwords(credentials: HTTPAuthorizationCredentials = Depends(veri
                 "suggestion_limit": pwd["suggestion_limit"],
                 "created_at": pwd["created_at"],
                 "expires_at": pwd["expires_at"],
-                "is_expired": pwd["expires_at"] < datetime.utcnow()
+                "is_expired": pwd["expires_at"] < datetime.utcnow(),
+                "bypass_watchdog": pwd.get("bypass_watchdog", False)
             })
 
         return {"passwords": passwords}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching passwords: {str(e)}")
+
+@app.delete("/api/admin/passwords/{password}")
+async def delete_password(password: str, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Delete a password (admin only)"""
+    try:
+        # Delete the password
+        result = await passwords_collection.delete_one({"password": password})
+
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Password not found")
+
+        # Also delete associated usage tracking
+        await usage_tracking_collection.delete_many({"password": password})
+
+        return {"message": "Password deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting password: {str(e)}")
 
 @app.delete("/api/admin/images/{image_id}")
 async def delete_image(image_id: str, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
