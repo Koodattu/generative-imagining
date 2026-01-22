@@ -338,7 +338,7 @@ async def generate_image_with_gemini(prompt: str) -> bytes:
             raise Exception("Rate limit exceeded. Please try again in a moment.")
 
         # Using Gemini's native image generation with chat API
-        chat = genai_client.chats.create(model="gemini-2.5-flash-image-preview")
+        chat = genai_client.chats.create(model="gemini-2.5-flash-image")
 
         # Send the prompt to generate the image
         instruction = f"Generate a high-quality image based on this prompt: {prompt}"
@@ -463,7 +463,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> 
         img = Image.open(original_image_path)
 
         # Using Gemini's native image editing with chat API
-        chat = genai_client.chats.create(model="gemini-2.5-flash-image-preview")
+        chat = genai_client.chats.create(model="gemini-2.5-flash-image")
 
         # Send the image and edit instruction
         instruction = f"Edit this image according to the following instruction: {edit_prompt}"
@@ -724,7 +724,8 @@ async def suggest_prompts(data: SuggestPrompts):
             query = f"""Generate exactly 3 fun image prompts based on '{data.keyword}'.
 
 GUIDELINES:
-- Family-friendly content suitable for ages 12-15
+- Try to incorporate the keyword into each prompt
+- Family-friendly content suitable for ages below 16
 - Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
 - Keep prompts grounded and realistic, not abstract or overly fantastical
 - Each prompt: 5-10 words, clear and descriptive{lang_instruction}
@@ -734,7 +735,7 @@ Return as a JSON object with a 'suggestions' array containing exactly 3 strings.
             query = f"""Generate exactly 3 fun, random image prompts.
 
 GUIDELINES:
-- Family-friendly content suitable for ages 12-15
+- Family-friendly content suitable for ages below 16
 - Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
 - Keep prompts grounded and realistic, not abstract or overly fantastical
 - Each prompt: 5-10 words, clear and descriptive{lang_instruction}

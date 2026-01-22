@@ -13,7 +13,7 @@ export default function Navigation() {
     { href: "/create", label: t("nav.create"), emoji: "✨" },
     { href: "/edit", label: t("nav.edit"), emoji: "🎨" },
     { href: "/gallery", label: t("nav.gallery"), emoji: "🖼️" },
-    { href: "/admin", label: t("nav.admin"), emoji: "🛠️" },
+    //{ href: "/admin", label: t("nav.admin"), emoji: "🛠️" },
   ];
 
   // Mobile navigation items (no admin)
