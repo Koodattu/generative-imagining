@@ -303,7 +303,7 @@ Return a JSON object with:
 - rejection_reason: if is_appropriate is false, provide a brief explanation (one sentence) why it was rejected. If is_appropriate is true, set this to an empty string."""
 
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model='gemini-2.5-flash',
             contents=moderation_prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -340,10 +340,24 @@ async def generate_image_with_gemini(prompt: str) -> bytes:
         # Using Gemini's native image generation with chat API
         chat = genai_client.chats.create(model="gemini-2.5-flash-image")
 
+        chat = genai_client.chats.create(
+            model="gemini-2.5-flash-image",
+            config=types.GenerateContentConfig(
+                response_modalities=['IMAGE'],
+            )
+        )
+
         # Send the prompt to generate the image
         instruction = f"Generate a high-quality image based on this prompt: {prompt}"
 
-        response = chat.send_message(instruction)
+        response = chat.send_message(instruction,
+            config=types.GenerateContentConfig(
+                image_config=types.ImageConfig(
+                    aspect_ratio="1:1",
+                    image_size="1K",
+                ),
+            )
+        )
 
         # Extract the image from response parts
         for part in response.candidates[0].content.parts:
@@ -370,7 +384,7 @@ async def describe_image_with_gemini(image_path: str) -> str:
 
         # Generate description using Gemini
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model='gemini-2.5-flash',
             contents=[
                 img,
                 "Describe this image in 5-7 words maximum. Focus on the main physical subjects and objects. Be very brief and simple."
@@ -430,7 +444,7 @@ GUIDELINES:
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model='gemini-2.5-flash',
             contents=[
                 img,
                 query
@@ -463,12 +477,24 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> 
         img = Image.open(original_image_path)
 
         # Using Gemini's native image editing with chat API
-        chat = genai_client.chats.create(model="gemini-2.5-flash-image")
+        chat = genai_client.chats.create(
+            model="gemini-2.5-flash-image",
+            config=types.GenerateContentConfig(
+                response_modalities=['IMAGE'],
+            )
+        )
 
         # Send the image and edit instruction
         instruction = f"Edit this image according to the following instruction: {edit_prompt}"
 
-        response = chat.send_message([instruction, img])
+        response = chat.send_message([instruction, img],
+            config=types.GenerateContentConfig(
+                image_config=types.ImageConfig(
+                    aspect_ratio="1:1",
+                    image_size="1K",
+                ),
+            )
+        )
 
         # Extract the edited image from response parts
         for part in response.candidates[0].content.parts:
@@ -743,7 +769,7 @@ GUIDELINES:
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
         response = genai_client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model='gemini-2.5-flash',
             contents=query,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
