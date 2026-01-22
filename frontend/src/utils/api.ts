@@ -1,7 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/";
 
 // Create axios instance
 const api = axios.create({
@@ -168,7 +168,7 @@ export const adminApi = {
     validHours: number,
     imageLimit: number,
     suggestionLimit: number,
-    bypassWatchdog: boolean = false
+    bypassWatchdog: boolean = false,
   ): Promise<{
     message: string;
     password: string;
@@ -188,7 +188,7 @@ export const adminApi = {
       },
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     return response.data;
   },
@@ -237,7 +237,7 @@ export const adminApi = {
 
   async updateModerationGuidelines(
     token: string,
-    guidelines: string
+    guidelines: string,
   ): Promise<{
     message: string;
     guidelines: string;
@@ -247,7 +247,7 @@ export const adminApi = {
       { guidelines },
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     return response.data;
   },
@@ -261,7 +261,7 @@ export const adminApi = {
       {},
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     return response.data;
   },

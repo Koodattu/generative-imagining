@@ -350,14 +350,7 @@ async def generate_image_with_gemini(prompt: str) -> bytes:
         # Send the prompt to generate the image
         instruction = f"Generate a high-quality image based on this prompt: {prompt}"
 
-        response = chat.send_message(instruction,
-            config=types.GenerateContentConfig(
-                image_config=types.ImageConfig(
-                    aspect_ratio="1:1",
-                    image_size="1K",
-                ),
-            )
-        )
+        response = chat.send_message(instruction)
 
         # Extract the image from response parts
         for part in response.candidates[0].content.parts:
@@ -487,14 +480,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str) -> 
         # Send the image and edit instruction
         instruction = f"Edit this image according to the following instruction: {edit_prompt}"
 
-        response = chat.send_message([instruction, img],
-            config=types.GenerateContentConfig(
-                image_config=types.ImageConfig(
-                    aspect_ratio="1:1",
-                    image_size="1K",
-                ),
-            )
-        )
+        response = chat.send_message([instruction, img])
 
         # Extract the edited image from response parts
         for part in response.candidates[0].content.parts:
