@@ -7,6 +7,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { usePassword } from "@/contexts/PasswordContext";
 import { imagesApi, aiApi, ImageData as ImageDataType } from "@/utils/api";
 import Image from "next/image";
+import { Sparkles } from "lucide-react";
 
 export default function EditImagePage() {
   const { user, loading } = useUser();
@@ -202,15 +203,35 @@ export default function EditImagePage() {
 
           {/* Loading overlay while editing */}
           {editing && !error && (
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="absolute inset-0 backdrop-blur-md flex items-center justify-center z-10">
+              {/* Animated colorful gradient background - more transparent */}
+              <div
+                className="absolute inset-0 animate-[gradient-shift_8s_ease-in-out_infinite] opacity-30"
+                style={{
+                  background: "linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f7b731, #5f27cd, #ff6348, #1dd1a1, #ee5a6f)",
+                  backgroundSize: "400% 400%",
+                }}
+              />
+
+              {/* Pulsing glow overlay - more transparent */}
+              <div
+                className="absolute inset-0 animate-[pulse-glow_3s_ease-in-out_infinite] opacity-20"
+                style={{
+                  background: "radial-gradient(circle at center, rgba(255, 107, 107, 0.4), rgba(78, 205, 196, 0.4), rgba(69, 183, 209, 0.4))",
+                }}
+              />
+
               {/* Shimmer effect */}
               <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute inset-[-100%] -translate-x-full animate-[shimmer_3.5s_infinite] bg-gradient-to-r from-transparent from-40% via-white/25 via-50% to-transparent to-60% rotate-12 origin-center"></div>
+                <div className="absolute inset-[-100%] -translate-x-full animate-[shimmer_3.5s_infinite] bg-gradient-to-r from-transparent from-40% via-white/20 via-50% to-transparent to-60% rotate-12 origin-center"></div>
               </div>
 
+              {/* Center content */}
               <div className="text-center relative z-10">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-500 mx-auto mb-4"></div>
-                <p className="text-white text-lg font-medium">{t("edit.editing")}</p>
+                <div className="animate-[colorful-spin_3s_ease-in-out_infinite] mx-auto mb-4">
+                  <Sparkles className="w-16 h-16 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                </div>
+                <p className="text-white font-medium text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{t("edit.editing")}</p>
               </div>
             </div>
           )}
