@@ -206,7 +206,7 @@ export default function GalleryPage() {
           {/* Main Image Area - Takes most space */}
           <div
             className="flex items-center justify-center relative px-16 md:px-24 py-4"
-            style={{ maxHeight: "calc(100vh - 250px)" }}
+            style={{ maxHeight: "100vh" }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}

@@ -81,6 +81,11 @@ export const imagesApi = {
     // For Next.js Image component, we need to return an absolute URL
     // In browser, use window.location.origin to get the current domain
     if (typeof window !== "undefined") {
+      // check if running dev
+      if (process.env.NODE_ENV === "development") {
+        return `${process.env.NEXT_PUBLIC_API_URL}/api/images/${imageId}`;
+      }
+
       return `${window.location.origin}/api/images/${imageId}`;
     }
     // On server-side, use the relative path
