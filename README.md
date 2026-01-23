@@ -2,7 +2,7 @@
 
 An AI-powered platform that turns imagination into images. Users can create and edit images using natural language, designed for educational environments with built-in content moderation.
 
-![Application Screenshot](docs/screenshot.png)
+![Application Screenshot](images/preview.png)
 _Create stunning images with simple text descriptions_
 
 ## What is Generative Imagining?
