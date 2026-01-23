@@ -259,15 +259,15 @@ export default function GalleryPage() {
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => handleEditImage(currentImage.id)}
-                  className="bg-purple-600 text-white px-4 md:px-6 py-2 rounded hover:bg-purple-700 transition-colors text-sm md:text-base"
+                  className="bg-purple-600 text-white px-5 md:px-8 py-2.5 md:py-3 rounded-full hover:bg-purple-700 transition-colors text-sm md:text-base font-medium"
                 >
-                  {t("gallery.edit")}
+                  ✏️ {t("gallery.edit")}
                 </button>
                 <button
                   onClick={() => handleShareImage(currentImage.id)}
-                  className="bg-blue-600 text-white px-4 md:px-6 py-2 rounded hover:bg-blue-700 transition-colors text-sm md:text-base"
+                  className="bg-green-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full hover:bg-green-700 transition-colors text-sm md:text-base font-medium"
                 >
-                  {copied ? t("gallery.copied") : t("gallery.share")}
+                  {copied ? "✅" : "🔗"} {copied ? t("gallery.copied") : t("gallery.share")}
                 </button>
               </div>
             </div>

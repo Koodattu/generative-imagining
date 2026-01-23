@@ -48,8 +48,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "create.generatedImage": "Luotu kuva",
     "create.prompt": "Kehote",
     "create.description": "Kuvaus",
-    "create.createAnother": "Luo toinen",
-    "create.editThisImage": "Muokkaa tätä kuvaa",
+    "create.createAnother": "✨ Luo toinen",
+    "create.editThisImage": "🎨 Muokkaa tätä kuvaa",
     "create.describeYourImage": "✏️ Kirjoita kuvaideasi tähän",
 
     // Edit page

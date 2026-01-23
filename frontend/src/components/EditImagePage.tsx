@@ -288,7 +288,7 @@ export default function EditImagePage() {
                 <button
                   onClick={handleGetSuggestions}
                   disabled={loadingSuggestions || !editPrompt.trim()}
-                  className="flex-1 bg-blue-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                  className="flex-1 bg-blue-600 text-white py-2.5 md:py-3 px-3 md:px-5 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {loadingSuggestions ? (
                     <div className="flex items-center justify-center">
@@ -302,15 +302,15 @@ export default function EditImagePage() {
                 <button
                   onClick={handleEditImage}
                   disabled={!editPrompt.trim() || loadingSuggestions}
-                  className="flex-1 bg-purple-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                  className="flex-[1.2] bg-purple-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {t("edit.editImage")}
                 </button>
                 <button
                   onClick={() => handleShareImage(selectedImage.id)}
-                  className="flex-1 bg-green-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-green-700 transition-colors text-sm md:text-base"
+                  className="flex-[0.5] bg-green-600 text-white py-2.5 md:py-3 px-3 md:px-4 rounded-full font-medium hover:bg-green-700 transition-colors text-sm md:text-base"
                 >
-                  {copied ? t("gallery.copied") : t("gallery.share")}
+                  {copied ? "✅" : "🔗"} {copied ? t("gallery.copied") : t("gallery.share")}
                 </button>
               </div>
             </div>

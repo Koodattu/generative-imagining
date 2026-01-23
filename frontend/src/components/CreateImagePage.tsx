@@ -219,7 +219,7 @@ export default function CreateImagePage() {
             <div className="text-center space-y-3 md:space-y-4">
               <p className="text-gray-100 text-base md:text-2xl italic px-4 line-clamp-3">&ldquo;{generatedImage.prompt}&rdquo;</p>
 
-              <div className="flex gap-2 md:gap-3 justify-center">
+              <div className="flex gap-2 md:gap-3 justify-center w-full max-w-2xl mx-auto">
                 <button
                   onClick={() => {
                     setGeneratedImage(null);
@@ -227,21 +227,21 @@ export default function CreateImagePage() {
                     setSuggestions([]);
                     setError(null);
                   }}
-                  className="bg-orange-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-orange-700 transition-colors shadow-lg text-sm md:text-base"
+                  className="flex-1 bg-orange-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-orange-700 transition-colors shadow-lg text-sm md:text-base"
                 >
                   {t("create.createAnother")}
                 </button>
                 <button
                   onClick={() => router.push(`/edit?imageId=${generatedImage.id}`)}
-                  className="bg-purple-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-lg text-sm md:text-base"
+                  className="flex-1 bg-purple-600 text-white px-3 md:px-5 py-2.5 md:py-3 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-lg text-sm md:text-base"
                 >
                   {t("create.editThisImage")}
                 </button>
                 <button
                   onClick={() => handleShareImage(generatedImage.id)}
-                  className="bg-blue-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg text-sm md:text-base"
+                  className="flex-[0.5] bg-green-600 text-white px-3 md:px-4 py-2.5 md:py-3 rounded-full font-medium hover:bg-green-700 transition-colors shadow-lg text-sm md:text-base"
                 >
-                  {copied ? t("gallery.copied") : t("gallery.share")}
+                  {copied ? "✅" : "🔗"} {copied ? t("gallery.copied") : t("gallery.share")}
                 </button>
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function CreateImagePage() {
                 <button
                   onClick={handleGetSuggestions}
                   disabled={loadingSuggestions || !prompt.trim()}
-                  className="flex-1 bg-blue-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                  className="flex-1 bg-blue-600 text-white py-2.5 md:py-3 px-3 md:px-5 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {loadingSuggestions ? (
                     <div className="flex items-center justify-center">
@@ -292,7 +292,7 @@ export default function CreateImagePage() {
                 <button
                   onClick={handleGenerateImage}
                   disabled={!prompt.trim() || loadingSuggestions}
-                  className="flex-1 bg-orange-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
+                  className="flex-[1.2] bg-orange-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-orange-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {t("create.generate")}
                 </button>
