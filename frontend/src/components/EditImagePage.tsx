@@ -183,7 +183,7 @@ export default function EditImagePage() {
         {/* Current Image */}
         <div
           className={`relative mx-auto rounded-lg overflow-hidden shadow-2xl transition-all duration-300 ${
-            suggestions.length > 0 ? "aspect-square w-full max-w-[min(45vh,90vw)] md:max-w-lg" : "aspect-square max-w-lg"
+            suggestions.length > 0 ? "aspect-square w-full max-w-[min(55vh,90vw)] md:max-w-2xl" : "aspect-square max-w-2xl"
           }`}
         >
           <Image
