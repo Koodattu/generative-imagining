@@ -1,17 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { usePassword } from "@/contexts/PasswordContext";
 import { passwordApi } from "@/utils/api";
 
 export default function PasswordDialog() {
   const { t } = useLocale();
-  const { password, setPassword, showPasswordDialog, setShowPasswordDialog } = usePassword();
+  const { password, setPassword, showPasswordDialog, setShowPasswordDialog, prefillPassword, setPrefillPassword } = usePassword();
   const [inputPassword, setInputPassword] = useState("");
   const [validating, setValidating] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isValidated, setIsValidated] = useState(false);
+
+  // Auto-fill password from prefill (query parameter)
+  useEffect(() => {
+    if (prefillPassword && showPasswordDialog) {
+      setInputPassword(prefillPassword);
+      // Clear the prefill after using it
+      setPrefillPassword(null);
+    }
+  }, [prefillPassword, showPasswordDialog, setPrefillPassword]);
 
   if (!showPasswordDialog) return null;
 

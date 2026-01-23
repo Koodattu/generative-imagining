@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { passwordApi } from "@/utils/api";
 
 interface PasswordContextType {
   password: string | null;
@@ -8,6 +9,9 @@ interface PasswordContextType {
   clearPassword: () => void;
   showPasswordDialog: boolean;
   setShowPasswordDialog: (show: boolean) => void;
+  isValidatingPassword: boolean;
+  prefillPassword: string | null;
+  setPrefillPassword: (password: string | null) => void;
 }
 
 const PasswordContext = createContext<PasswordContextType | undefined>(undefined);
@@ -15,17 +19,41 @@ const PasswordContext = createContext<PasswordContextType | undefined>(undefined
 export function PasswordProvider({ children }: { children: ReactNode }) {
   const [password, setPasswordState] = useState<string | null>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [isValidatingPassword, setIsValidatingPassword] = useState(true);
+  const [prefillPassword, setPrefillPassword] = useState<string | null>(null);
 
-  // Load password from cookies on mount
+  // Load password from cookies on mount and validate against backend
   useEffect(() => {
-    const savedPassword = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("app_password="))
-      ?.split("=")[1];
+    const validateSavedPassword = async () => {
+      const savedPassword = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("app_password="))
+        ?.split("=")[1];
 
-    if (savedPassword) {
-      setPasswordState(savedPassword);
-    }
+      if (savedPassword) {
+        try {
+          const data = await passwordApi.validatePassword(savedPassword);
+          if (data.valid) {
+            setPasswordState(savedPassword);
+          } else {
+            // Password is no longer valid, clear it and show dialog
+            document.cookie = "app_password=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            setShowPasswordDialog(true);
+          }
+        } catch (error) {
+          console.error("Error validating saved password:", error);
+          // On error, clear and show dialog
+          document.cookie = "app_password=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          setShowPasswordDialog(true);
+        }
+      } else {
+        // No saved password, show dialog
+        setShowPasswordDialog(true);
+      }
+      setIsValidatingPassword(false);
+    };
+
+    validateSavedPassword();
   }, []);
 
   const setPassword = (pwd: string) => {
@@ -41,7 +69,22 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
     document.cookie = "app_password=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   };
 
-  return <PasswordContext.Provider value={{ password, setPassword, clearPassword, showPasswordDialog, setShowPasswordDialog }}>{children}</PasswordContext.Provider>;
+  return (
+    <PasswordContext.Provider
+      value={{
+        password,
+        setPassword,
+        clearPassword,
+        showPasswordDialog,
+        setShowPasswordDialog,
+        isValidatingPassword,
+        prefillPassword,
+        setPrefillPassword,
+      }}
+    >
+      {children}
+    </PasswordContext.Provider>
+  );
 }
 
 export function usePassword() {
