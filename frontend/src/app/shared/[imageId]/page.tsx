@@ -56,14 +56,12 @@ export default function SharedImagePage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Main Image Area - Takes remaining space */}
-      <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="relative w-full h-full flex items-center justify-center">
-          <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} width={1024} height={1024} className="object-contain max-w-full max-h-full" unoptimized />
-        </div>
+      <div className="flex-1 min-h-0 overflow-hidden flex items-start justify-center">
+        <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} width={1024} height={1024} className="w-auto h-full object-contain" unoptimized />
       </div>
 
       {/* Prompt Display - Takes as much space as needed */}
-      <div className="flex-shrink-0 px-6 py-6">
+      <div className="flex-shrink-0 px-4 py-4">
         <p className="text-gray-300 text-center text-base md:text-lg leading-relaxed">{image.prompt}</p>
       </div>
     </div>

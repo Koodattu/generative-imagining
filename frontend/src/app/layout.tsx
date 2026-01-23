@@ -6,6 +6,7 @@ import { LocaleProvider } from "@/contexts/LocaleContext";
 import { PasswordProvider } from "@/contexts/PasswordContext";
 import Navigation from "@/components/Navigation";
 import PasswordDialog from "@/components/PasswordDialog";
+import RootLayoutContent from "@/components/RootLayoutContent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,16 +46,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
-
-function RootLayoutContent({ children }: { children: React.ReactNode }) {
-  "use client";
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-
-  // Don't wrap /shared routes with container padding
-  if (pathname.startsWith("/shared")) {
-    return <>{children}</>;
-  }
-
-  return <main className="container mx-auto px-4 py-4 pb-20 md:py-8 md:pb-8">{children}</main>;
 }

@@ -12,6 +12,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overscroll-behavior-y: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -19,12 +26,6 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Prevent pull-to-refresh on mobile */
-html,
-body {
-  overscroll-behavior-y: none;
 }
 
 /* Ensure smooth scrolling for suggestions lists */
