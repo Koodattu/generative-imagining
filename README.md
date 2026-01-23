@@ -1,234 +1,153 @@
-# Generative Imagining - AI-Powered Image Creation Platform
+# Generative Imagining ✨
 
-A simple MVP web application for AI-powered image generation and editing using Google Gemini 2.5 Flash, built with Python FastAPI backend and React Next.js frontend.
+An AI-powered platform that turns imagination into images. Users can create and edit images using natural language, designed for educational environments with built-in content moderation.
 
-## 🎯 Project Overview
+![Application Screenshot](docs/screenshot.png)
+_Create stunning images with simple text descriptions_
 
-This project provides a streamlined platform where users can:
+## What is Generative Imagining?
 
-- Generate images from text prompts using Google Gemini AI
-- Edit existing generated images with AI assistance
-- Browse their personal image gallery
-- Get AI-powered suggestions for image creation and editing
+Generative Imagining is a safe, accessible platform for creating AI-generated images. Simply describe what you want to see, and watch the AI bring your ideas to life. Perfect for creative exploration, educational projects, and learning about AI image generation.
 
-The system uses a naive but effective user identification method combining IP addresses and GUIDs, eliminating the need for traditional user registration.
+### ✨ Key Features
 
-## 🏗️ System Architecture
+- 🎨 **Text-to-Image Creation** - Describe your vision in plain language
+- ✏️ **AI-Powered Editing** - Modify existing images with natural instructions
+- 🖼️ **Personal Gallery** - Organize and manage your creations
+- 🔗 **Easy Sharing** - Share images with a single link
+- 🌍 **Bilingual Support** - Available in English and Finnish
+- 🛡️ **Content Moderation** - Built-in safety for educational settings
+- 🎭 **No Account Required** - Start creating immediately
 
-### Backend (Python FastAPI)
+## How It Works
 
-- **Framework**: FastAPI
-- **AI Integration**: Google Gemini 2.5 Flash with experimental image generation
-- **Database**: MongoDB
-- **Authentication**: Simple admin login
-- **Storage**: Local file system for images
-
-### Frontend (React Next.js)
-
-- **Framework**: Next.js with React
-- **Target**: Mobile-first, desktop compatible
-- **Views**: Create Image, Edit Image, Gallery, Admin
-- **Styling**: Simple, responsive design
-
-### Database Schema
-
-```
-Collections:
-1. users: { guid: string, ip: string, created_at: datetime }
-2. images: {
-   id: string,
-   user_guid: string,
-   file_path: string,
-   prompt: string,
-   description: string,
-   created_at: datetime,
-   updated_at: datetime
-}
+```mermaid
+graph LR
+    A[Enter Text Prompt] --> B[AI Generates Image]
+    B --> C[View in Gallery]
+    C --> D{What Next?}
+    D --> E[Share with Link]
+    D --> F[Edit with AI]
+    D --> G[Create More]
+    F --> B
 ```
 
-## 🔧 Core Features
+1. **Enter a Prompt** - Describe the image you want to create
+2. **AI Generation** - Powered by Google Gemini 2.5 Flash
+3. **View & Manage** - Browse your gallery, share, or edit
+4. **Keep Creating** - Unlimited creative possibilities
 
-### User Management
+## Quick Start
 
-- **IP + GUID Tracking**: Users identified by IP address and server-generated GUID
-- **Cookie Persistence**: GUID stored in browser cookies
-- **IP Recovery**: If cookies cleared, user identified by IP to retrieve existing GUID
-
-### Image Generation
-
-- **Text-to-Image**: Users provide prompts for image generation via Gemini AI
-- **AI Suggestions**: Gemini provides creative prompt suggestions (blank slate or keyword-based)
-- **Image Description**: Auto-generated descriptions for all images using Gemini
-
-### Image Editing
-
-- **AI-Powered Editing**: Gemini analyzes existing images and suggests modifications
-- **Context-Aware**: Editing suggestions based on image content analysis
-- **Generated Images Only**: No user uploads, only AI-generated content
-
-### Gallery & Admin
-
-- **Personal Gallery**: Users view their generated images
-- **Admin Dashboard**: Simple authenticated view of all images and prompts
-- **Minimal UI**: Clean, functional interface focused on core functionality
-
-## 📡 API Endpoints
-
-### User Management
-
-```
-GET  /api/user/identify     # Get or create user by IP
-POST /api/user/verify       # Verify GUID for existing user
-```
-
-### Image Operations
-
-```
-POST /api/images/generate   # Generate new image from prompt
-POST /api/images/edit       # Edit existing image
-GET  /api/images/gallery    # Get user's images
-GET  /api/images/{id}       # Get specific image
-DELETE /api/images/{id}     # Delete image
-```
-
-### AI Assistance
-
-```
-POST /api/ai/suggest-prompts    # Get prompt suggestions
-POST /api/ai/describe-image     # Get image description
-POST /api/ai/suggest-edits      # Get edit suggestions for image
-```
-
-### Admin
-
-```
-POST /api/admin/login       # Admin authentication
-GET  /api/admin/images      # Get all images (admin only)
-GET  /api/admin/stats       # Get platform statistics
-```
-
-## 🚀 Deployment
-
-### Docker Setup
+### Using Docker (Recommended)
 
 ```bash
-# Build and run all services
-docker-compose up --build
+# Clone the repository
+git clone https://github.com/yourusername/generative-imagining.git
+cd generative-imagining
 
-# Run in background
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your Google API key
+
+# Start the application
 docker-compose up -d
 
-# Stop services
-docker-compose down
+# Access the application
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8000
 ```
 
-### Services
+### Manual Setup
 
-- **Frontend**: http://localhost:3000
-- **Backend**: http://localhost:8000
-- **MongoDB**: localhost:27017
+**Prerequisites:**
 
-## 📁 Project Structure
+- Python 3.9+
+- Node.js 18+
+- MongoDB
+- Google Gemini API key
 
-```
-generative-imagining/
-├── README.md
-├── docker-compose.yml
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── main.py
-│   ├── models/
-│   ├── routers/
-│   ├── services/
-│   └── utils/
-├── frontend/
-│   └── imaging-web/
-│       ├── Dockerfile
-│       ├── package.json
-│       ├── src/
-│       │   ├── app/
-│       │   ├── components/
-│       │   └── utils/
-│       └── public/
-└── data/
-    └── images/     # Generated images storage
-```
-
-## 🛠️ Development Setup
-
-### Prerequisites
-
-- Docker & Docker Compose
-- Node.js 18+ (for local frontend development)
-- Python 3.9+ (for local backend development)
-
-### Environment Variables
+**Backend:**
 
 ```bash
-# Backend
-GOOGLE_API_KEY=your_gemini_api_key
-MONGO_URI=mongodb://mongo:27017
-ADMIN_PASSWORD=your_admin_password
-IMAGES_PATH=/app/data/images
-
-# Frontend
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-### Local Development
-
-```bash
-# Backend
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python main.py
+```
 
-# Frontend
-cd frontend/imaging-web
+**Frontend:**
+
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-## 🎨 UI/UX Design Principles
+See [SETUP.md](SETUP.md) for detailed installation instructions.
 
-- **Mobile-First**: Optimized for mobile experience
-- **Minimal Interface**: Clean, distraction-free design
-- **Fast Loading**: Optimized for quick image generation and viewing
-- **Intuitive Navigation**: Simple 3-view structure
-- **Responsive**: Works seamlessly on desktop and mobile
+## Configuration
 
-## 🔒 Security Considerations
+Create a `.env` file in the root directory:
 
-- **IP-Based Auth**: Simple but effective for MVP
-- **Admin Protection**: Basic authentication for admin endpoints
-- **File Validation**: Server-side validation for generated images
-- **Rate Limiting**: Prevent API abuse (future enhancement)
+```env
+# Google Gemini API
+GOOGLE_API_KEY=your_api_key_here
 
-## 📈 Future Enhancements
+# MongoDB
+MONGO_URI=mongodb://localhost:27017
 
-- Real user authentication system
-- Image sharing capabilities
-- Advanced editing tools
-- Batch image generation
-- Image categories and tags
-- API rate limiting
-- Enhanced admin analytics
+# Admin Access
+ADMIN_PASSWORD=your_secure_password
+```
 
-## 🧪 MVP Approach
+## For Educators & Administrators
 
-This project follows a strict MVP methodology:
+Generative Imagining is designed for educational environments:
 
-- **No over-engineering**: Simple, working solutions
-- **Core functionality first**: Focus on image generation and viewing
-- **Minimal viable features**: Essential features only
-- **Quick deployment**: Docker-based setup for easy deployment
-- **Scalable foundation**: Architecture allows for future enhancements
+- **Password Management** - Create time-limited access codes for students
+- **Usage Limits** - Control how many images each password can generate
+- **Content Moderation** - AI-powered filtering with customizable guidelines
+- **Activity Monitoring** - View usage statistics and moderate content
+- **Safe Environment** - No personal data collection, anonymous usage
 
-## 📝 License
+Access the admin panel at `/admin` with your configured password.
 
-MIT License - see LICENSE file for details
+## Technology Stack
+
+- **AI**: Google Gemini 2.5 Flash
+- **Backend**: Python FastAPI + MongoDB
+- **Frontend**: Next.js + React + TypeScript
+- **Deployment**: Docker & Docker Compose
+
+For technical details, see [TECHNICAL.md](TECHNICAL.md).
+
+## Use Cases
+
+- 🎓 **Education** - Creative writing prompts, visual learning aids
+- 🎨 **Art Exploration** - Discover AI art generation techniques
+- 📚 **Storytelling** - Visualize characters and scenes
+- 🧪 **Experimentation** - Learn about AI capabilities and limitations
+- 🎮 **Game Design** - Prototype characters and environments
+
+## Project Status
+
+This is an actively developed MVP. See [GitHub Issues](../../issues) for planned features and known limitations.
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Support & Documentation
+
+- 📖 [Setup Guide](SETUP.md) - Detailed installation instructions
+- 🔧 [Technical Documentation](TECHNICAL.md) - Architecture and API details
+- 💬 [GitHub Discussions](../../discussions) - Ask questions and share ideas
+- 🐛 [Issue Tracker](../../issues) - Report bugs or request features
 
 ---
 
-**Built with simplicity and functionality in mind. Ready to generate amazing images! 🎨✨**
+**Made with ❤️ for creative minds and curious learners**
