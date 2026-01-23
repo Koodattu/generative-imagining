@@ -203,40 +203,39 @@ export default function GalleryPage() {
             ×
           </button>
 
-          {/* Main Image Area - Takes most space */}
+          {/* Main Image Area - Takes remaining space */}
           <div
-            className="flex items-center justify-center relative px-16 md:px-24 py-4"
-            style={{ maxHeight: "100vh" }}
+            className="flex-1 flex items-center justify-center relative overflow-hidden"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            {/* Previous Button */}
-            <button
-              onClick={navigatePrevious}
-              className="absolute left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
-              aria-label="Previous"
-            >
-              ‹
-            </button>
-
-            {/* Image Container */}
-            <div className="relative max-w-full max-h-full flex items-center justify-center">
+            {/* Image Container - Full width/height */}
+            <div className="relative w-full h-full flex items-center justify-center">
               <Image
                 key={currentImage.id}
                 src={imagesApi.getImageUrl(currentImage.id)}
                 alt={currentImage.description}
                 width={1024}
                 height={1024}
-                className="object-contain max-w-full max-h-full w-auto h-auto"
+                className="object-contain w-full h-full"
                 unoptimized
               />
             </div>
 
-            {/* Next Button */}
+            {/* Previous Button - Overlay on image */}
+            <button
+              onClick={navigatePrevious}
+              className="absolute left-2 md:left-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-12 h-12 md:w-16 md:h-16 flex items-center justify-center bg-black/20 hover:bg-black/40 rounded-full"
+              aria-label="Previous"
+            >
+              ‹
+            </button>
+
+            {/* Next Button - Overlay on image */}
             <button
               onClick={navigateNext}
-              className="absolute right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-16 h-16 flex items-center justify-center"
+              className="absolute right-2 md:right-4 z-40 text-white text-5xl hover:text-gray-300 transition-colors w-12 h-12 md:w-16 md:h-16 flex items-center justify-center bg-black/20 hover:bg-black/40 rounded-full"
               aria-label="Next"
             >
               ›
@@ -247,7 +246,7 @@ export default function GalleryPage() {
           <div className="flex-shrink-0 bg-[#1a1a1a] border-t border-gray-800">
             {/* Prompt and Edit Button */}
             <div className="max-w-4xl mx-auto px-4 md:px-8 py-3 md:py-4">
-              <p className="text-white text-center mb-3 text-sm md:text-base line-clamp-2">{currentImage.prompt}</p>
+              <p className="text-white text-center mb-3 text-base md:text-base line-clamp-2">{currentImage.prompt}</p>
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => handleEditImage(currentImage.id)}
