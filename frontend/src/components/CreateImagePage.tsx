@@ -158,7 +158,7 @@ export default function CreateImagePage() {
 
         {/* Show loading state while generating - image loads behind the overlay */}
         {generating && !error && (
-          <div className="relative aspect-square max-w-lg md:max-w-2xl mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden shadow-2xl">
+          <div className="relative aspect-square w-full max-w-[min(50vh,90vw)] md:max-w-[min(55vh,42rem)] mx-auto bg-[#0a0a0a] rounded-lg overflow-hidden shadow-2xl">
             {/* Image loading in background (invisible until loaded) */}
             {generatedImage && (
               <Image
@@ -211,8 +211,8 @@ export default function CreateImagePage() {
 
         {/* Show generated image result */}
         {generatedImage && !generating && !error && (
-          <div className="space-y-4 md:space-y-6">
-            <div className="relative aspect-square max-w-lg md:max-w-2xl mx-auto rounded-lg overflow-hidden shadow-2xl">
+          <div className="space-y-3 md:space-y-4">
+            <div className="relative aspect-square w-full max-w-[min(45vh,90vw)] md:max-w-[min(50vh,36rem)] mx-auto rounded-lg overflow-hidden shadow-2xl">
               <Image src={imagesApi.getImageUrl(generatedImage.id)} alt={generatedImage.description} fill className="object-cover" unoptimized />
             </div>
 
