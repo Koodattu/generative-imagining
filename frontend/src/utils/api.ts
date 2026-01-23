@@ -72,6 +72,11 @@ export const imagesApi = {
     return response.data;
   },
 
+  async getImageById(imageId: string): Promise<ImageData> {
+    const response = await api.get(`/api/images/${imageId}/public`);
+    return response.data;
+  },
+
   async deleteImage(imageId: string, userGuid: string): Promise<{ message: string }> {
     const response = await api.delete(`/api/images/${imageId}?user_guid=${userGuid}`);
     return response.data;

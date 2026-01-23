@@ -9,6 +9,11 @@ export default function Navigation() {
   const pathname = usePathname();
   const { t } = useLocale();
 
+  // Don't show navigation on shared pages
+  if (pathname.startsWith("/shared")) {
+    return null;
+  }
+
   const navItems = [
     { href: "/create", label: t("nav.create"), emoji: "✨" },
     { href: "/edit", label: t("nav.edit"), emoji: "🎨" },

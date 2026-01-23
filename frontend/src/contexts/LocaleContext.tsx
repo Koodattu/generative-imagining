@@ -81,6 +81,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "gallery.noImages.desc": "Luo ensimmäinen kuvasi nähdäksesi sen täällä",
     "gallery.createFirst": "Luo ensimmäinen kuvasi",
     "gallery.edit": "Muokkaa",
+    "gallery.share": "Jaa",
     "gallery.delete": "Poista",
     "gallery.imageDetails": "Kuvan tiedot",
     "gallery.prompt": "Kehote",
@@ -88,6 +89,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "gallery.created": "Luotu",
     "gallery.close": "Sulje",
     "gallery.deleteConfirm": "Haluatko varmasti poistaa tämän kuvan?",
+    "gallery.linkCopied": "Jakolinkki kopioitu leikepöydälle!",
+    "gallery.copied": "Kopioitu!",
 
     // Gallery errors
     "gallery.loadError": "Gallerian lataaminen epäonnistui. Yritä uudelleen.",
@@ -283,6 +286,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "gallery.noImages.desc": "Create your first image to see it here",
     "gallery.createFirst": "Create Your First Image",
     "gallery.edit": "Edit",
+    "gallery.share": "Share",
     "gallery.delete": "Delete",
     "gallery.imageDetails": "Image Details",
     "gallery.prompt": "Prompt",
@@ -290,6 +294,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "gallery.created": "Created",
     "gallery.close": "Close",
     "gallery.deleteConfirm": "Are you sure you want to delete this image?",
+    "gallery.linkCopied": "Share link copied to clipboard!",
+    "gallery.copied": "Copied!",
 
     // Gallery errors
     "gallery.loadError": "Failed to load gallery. Please try again.",

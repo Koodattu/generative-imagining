@@ -16,6 +16,7 @@ export default function GalleryPage() {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadGallery = async () => {
@@ -126,6 +127,19 @@ export default function GalleryPage() {
     router.push(`/edit?imageId=${imageId}`);
   };
 
+  const handleShareImage = (imageId: string) => {
+    const shareUrl = `${window.location.origin}/shared/${imageId}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+      });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -204,12 +218,7 @@ export default function GalleryPage() {
           </button>
 
           {/* Main Image Area - Takes remaining space */}
-          <div
-            className="flex-1 flex items-center justify-center relative overflow-hidden"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
+          <div className="flex-1 flex items-center justify-center relative overflow-hidden" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
             {/* Image Container - Full width/height */}
             <div className="relative w-full h-full flex items-center justify-center">
               <Image
@@ -253,6 +262,12 @@ export default function GalleryPage() {
                   className="bg-purple-600 text-white px-4 md:px-6 py-2 rounded hover:bg-purple-700 transition-colors text-sm md:text-base"
                 >
                   {t("gallery.edit")}
+                </button>
+                <button
+                  onClick={() => handleShareImage(currentImage.id)}
+                  className="bg-blue-600 text-white px-4 md:px-6 py-2 rounded hover:bg-blue-700 transition-colors text-sm md:text-base"
+                >
+                  {copied ? t("gallery.copied") : t("gallery.share")}
                 </button>
               </div>
             </div>

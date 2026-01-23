@@ -37,7 +37,7 @@ export default function RootLayout({
           <PasswordProvider>
             <UserProvider>
               <Navigation />
-              <main className="container mx-auto px-4 py-4 pb-20 md:py-8 md:pb-8">{children}</main>
+              <RootLayoutContent>{children}</RootLayoutContent>
               <PasswordDialog />
             </UserProvider>
           </PasswordProvider>
@@ -45,4 +45,16 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+function RootLayoutContent({ children }: { children: React.ReactNode }) {
+  "use client";
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+
+  // Don't wrap /shared routes with container padding
+  if (pathname.startsWith("/shared")) {
+    return <>{children}</>;
+  }
+
+  return <main className="container mx-auto px-4 py-4 pb-20 md:py-8 md:pb-8">{children}</main>;
 }

@@ -196,13 +196,14 @@ async def validate_password(password: str, user_guid: str, usage_type: str = "im
     usage_type can be 'image' (for generation/editing) or 'suggestion'
     Returns tuple: (is_valid, bypass_watchdog)
     """
-    # Admin password always works
+    # Admin password always works (case-sensitive)
     if password == ADMIN_PASSWORD:
         return (True, False)
 
-    # Check if password exists and is not expired
+    # Check if password exists and is not expired (case-insensitive for user passwords)
+    password_lower = password.lower()
     password_doc = await passwords_collection.find_one({
-        "password": password,
+        "password": password_lower,
         "expires_at": {"$gt": datetime.utcnow()}
     })
 
@@ -242,7 +243,8 @@ async def increment_usage(password: str, user_guid: str, usage_type: str = "imag
     if password == ADMIN_PASSWORD:
         return  # Don't track admin usage
 
-    usage_key = f"{user_guid}:{password}"
+    password_lower = password.lower()
+    usage_key = f"{user_guid}:{password_lower}"
 
     if usage_type == "image":
         await usage_tracking_collection.update_one(
@@ -575,7 +577,7 @@ async def generate_image(data: ImageGenerate):
             "description": description,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "created_with_password": data.password if data.password != ADMIN_PASSWORD else "admin"
+            "created_with_password": data.password.lower() if data.password != ADMIN_PASSWORD else "admin"
         }
 
         await images_collection.insert_one(image_doc)
@@ -642,7 +644,7 @@ async def edit_image(data: ImageEdit):
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
             "original_image_id": data.image_id,
-            "created_with_password": data.password if data.password != ADMIN_PASSWORD else "admin"
+            "created_with_password": data.password.lower() if data.password != ADMIN_PASSWORD else "admin"
         }
 
         await images_collection.insert_one(new_image_doc)
@@ -709,6 +711,19 @@ async def delete_image(image_id: str, user_guid: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting image: {str(e)}")
+
+@app.get("/api/images/{image_id}/public")
+async def get_image_public(image_id: str):
+    """Get image metadata for public sharing (no password required)"""
+    try:
+        image = await images_collection.find_one({"id": image_id})
+        if not image:
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        return ImageResponse(**image)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching image: {str(e)}")
 
 # AI Assistance Endpoints
 @app.post("/api/ai/suggest-prompts")
@@ -895,8 +910,11 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
         from datetime import timedelta
         expires_at = datetime.utcnow() + timedelta(hours=data.valid_hours)
 
+        # Store password in lowercase for case-insensitive comparison
+        password_lower = data.password.lower()
+
         password_doc = {
-            "password": data.password,
+            "password": password_lower,
             "valid_hours": data.valid_hours,
             "image_limit": data.image_limit,
             "suggestion_limit": data.suggestion_limit,
@@ -907,14 +925,14 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
 
         # Use update_one with upsert to overwrite existing password
         await passwords_collection.update_one(
-            {"password": data.password},
+            {"password": password_lower},
             {"$set": password_doc},
             upsert=True
         )
 
         return {
             "message": "Password created successfully",
-            "password": data.password,
+            "password": password_lower,
             "expires_at": expires_at,
             "image_limit": data.image_limit,
             "suggestion_limit": data.suggestion_limit,
@@ -948,14 +966,15 @@ async def get_passwords(credentials: HTTPAuthorizationCredentials = Depends(veri
 async def delete_password(password: str, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
     """Delete a password (admin only)"""
     try:
-        # Delete the password
-        result = await passwords_collection.delete_one({"password": password})
+        # Delete the password (convert to lowercase for case-insensitive deletion)
+        password_lower = password.lower()
+        result = await passwords_collection.delete_one({"password": password_lower})
 
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Password not found")
 
         # Also delete associated usage tracking
-        await usage_tracking_collection.delete_many({"password": password})
+        await usage_tracking_collection.delete_many({"password": password_lower})
 
         return {"message": "Password deleted successfully"}
     except HTTPException:
@@ -1051,7 +1070,7 @@ async def get_moderation_failures(credentials: HTTPAuthorizationCredentials = De
 async def validate_password_endpoint(data: PasswordValidate):
     """Validate a password without using it"""
     try:
-        # Check if it's admin password
+        # Check if it's admin password (case-sensitive)
         if data.password == ADMIN_PASSWORD:
             return {
                 "valid": True,
@@ -1059,9 +1078,10 @@ async def validate_password_endpoint(data: PasswordValidate):
                 "message": "Admin password - unlimited access"
             }
 
-        # Check if password exists and is not expired
+        # Check if password exists and is not expired (case-insensitive for user passwords)
+        password_lower = data.password.lower()
         password_doc = await passwords_collection.find_one({
-            "password": data.password,
+            "password": password_lower,
             "expires_at": {"$gt": datetime.utcnow()}
         })
 

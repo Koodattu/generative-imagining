@@ -2,12 +2,26 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/contexts/LocaleContext";
 import { usePassword } from "@/contexts/PasswordContext";
 
 export default function Home() {
   const { locale, setLocale, t } = useLocale();
-  const { password, setShowPasswordDialog } = usePassword();
+  const { password, setPassword, setShowPasswordDialog } = usePassword();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Handle query parameter password
+  useEffect(() => {
+    const queryPassword = searchParams.get("p");
+    if (queryPassword) {
+      // Set the password from query parameter
+      setPassword(queryPassword);
+      // Remove the query parameter from URL for security
+      router.replace("/", { scroll: false });
+    }
+  }, [searchParams, setPassword, router]);
 
   // Show password dialog on first visit if no password exists
   useEffect(() => {
