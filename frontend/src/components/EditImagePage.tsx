@@ -184,9 +184,9 @@ export default function EditImagePage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] px-4">
+    <div className="flex flex-col items-center justify-start pt-4 md:pt-8 min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] px-4">
       {/* Main Content Container */}
-      <div className="w-full max-w-2xl space-y-3 md:space-y-6">
+      <div className="w-full max-w-2xl space-y-3 md:space-y-4">
         {/* Error Message */}
         {error && !editing && (
           <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 md:px-6 py-3 md:py-4 rounded-lg text-center">
@@ -198,8 +198,8 @@ export default function EditImagePage() {
         <div
           className={`relative mx-auto rounded-lg overflow-hidden shadow-2xl transition-all duration-300 ${
             suggestions.length > 0
-              ? "aspect-square w-full max-w-[min(35vh,90vw)] md:max-w-[min(40vh,32rem)]"
-              : "aspect-square w-full max-w-[min(45vh,90vw)] md:max-w-[min(50vh,36rem)]"
+              ? "aspect-square w-full max-w-[min(38vh,90vw)] md:max-w-[min(42vh,32rem)]"
+              : "aspect-square w-full max-w-[min(55vh,90vw)] md:max-w-[min(60vh,36rem)]"
           }`}
         >
           <Image

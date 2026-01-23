@@ -138,7 +138,9 @@ export default function CreateImagePage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] px-4">
+    <div
+      className={`flex flex-col items-center px-4 min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-200px)] ${generatedImage && !generating ? "justify-start pt-4 md:pt-8" : "justify-center"}`}
+    >
       {/* Header */}
       {!generating && !generatedImage && (
         <div className="text-center mb-6 md:mb-12">
@@ -212,7 +214,7 @@ export default function CreateImagePage() {
         {/* Show generated image result */}
         {generatedImage && !generating && !error && (
           <div className="space-y-3 md:space-y-4">
-            <div className="relative aspect-square w-full max-w-[min(45vh,90vw)] md:max-w-[min(50vh,36rem)] mx-auto rounded-lg overflow-hidden shadow-2xl">
+            <div className="relative aspect-square w-full max-w-[min(55vh,90vw)] md:max-w-[min(60vh,36rem)] mx-auto rounded-lg overflow-hidden shadow-2xl">
               <Image src={imagesApi.getImageUrl(generatedImage.id)} alt={generatedImage.description} fill className="object-cover" unoptimized />
             </div>
 
