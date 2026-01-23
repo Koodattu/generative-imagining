@@ -139,7 +139,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Support & Documentation
 
