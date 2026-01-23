@@ -255,7 +255,7 @@ export default function GalleryPage() {
           <div className="flex-shrink-0 bg-[#1a1a1a] border-t border-gray-800">
             {/* Prompt and Edit Button */}
             <div className="max-w-4xl mx-auto px-4 md:px-8 py-3 md:py-4">
-              <p className="text-white text-center mb-3 text-base md:text-base line-clamp-2">{currentImage.prompt}</p>
+              <p className="text-white text-center mb-3 text-base md:text-lg lg:text-2xl line-clamp-2">{currentImage.prompt}</p>
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => handleEditImage(currentImage.id)}
