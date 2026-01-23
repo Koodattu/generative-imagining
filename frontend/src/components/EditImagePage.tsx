@@ -228,7 +228,7 @@ export default function EditImagePage() {
 
               {/* Center content */}
               <div className="text-center relative z-10">
-                <div className="animate-[colorful-spin_3s_ease-in-out_infinite] mx-auto mb-4">
+                <div className="animate-[colorful-spin_3s_ease-in-out_infinite] mx-auto mb-4" style={{ transformOrigin: "center" }}>
                   <Sparkles className="w-16 h-16 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
                 </div>
                 <p className="text-white font-medium text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{t("edit.editing")}</p>
