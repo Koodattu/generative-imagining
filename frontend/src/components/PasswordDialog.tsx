@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useLocale } from "@/contexts/LocaleContext";
 import { usePassword } from "@/contexts/PasswordContext";
 import { passwordApi } from "@/utils/api";
 
 export default function PasswordDialog() {
+  const pathname = usePathname();
   const { t } = useLocale();
   const { password, setPassword, showPasswordDialog, setShowPasswordDialog, prefillPassword, setPrefillPassword } = usePassword();
   const [inputPassword, setInputPassword] = useState("");
   const [validating, setValidating] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isValidated, setIsValidated] = useState(false);
+
+  // Never show password dialog on shared pages - they are always public
+  if (pathname.startsWith("/shared")) {
+    return null;
+  }
 
   // Auto-fill password from prefill (query parameter)
   useEffect(() => {

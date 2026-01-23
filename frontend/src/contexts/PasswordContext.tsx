@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { passwordApi } from "@/utils/api";
 
 interface PasswordContextType {
@@ -17,6 +18,7 @@ interface PasswordContextType {
 const PasswordContext = createContext<PasswordContextType | undefined>(undefined);
 
 export function PasswordProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [password, setPasswordState] = useState<string | null>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [isValidatingPassword, setIsValidatingPassword] = useState(true);
@@ -25,6 +27,12 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
   // Load password from cookies on mount and validate against backend
   useEffect(() => {
     const validateSavedPassword = async () => {
+      // Skip password validation for shared pages - they are always public
+      if (pathname.startsWith("/shared")) {
+        setIsValidatingPassword(false);
+        return;
+      }
+
       const savedPassword = document.cookie
         .split("; ")
         .find((row) => row.startsWith("app_password="))
@@ -54,7 +62,7 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
     };
 
     validateSavedPassword();
-  }, []);
+  }, [pathname]);
 
   const setPassword = (pwd: string) => {
     setPasswordState(pwd);
