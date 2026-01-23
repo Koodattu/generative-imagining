@@ -20,6 +20,7 @@ export default function CreateImagePage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleGenerateImage = async () => {
     if (!user || !prompt.trim()) return;
@@ -99,6 +100,19 @@ export default function CreateImagePage() {
         textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
       }
     }, 0);
+  };
+
+  const handleShareImage = (imageId: string) => {
+    const shareUrl = `${window.location.origin}/shared/${imageId}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+      });
   };
 
   if (loading) {
@@ -222,6 +236,12 @@ export default function CreateImagePage() {
                   className="bg-purple-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-purple-700 transition-colors shadow-lg text-sm md:text-base"
                 >
                   {t("create.editThisImage")}
+                </button>
+                <button
+                  onClick={() => handleShareImage(generatedImage.id)}
+                  className="bg-blue-600 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg text-sm md:text-base"
+                >
+                  {copied ? t("gallery.copied") : t("gallery.share")}
                 </button>
               </div>
             </div>

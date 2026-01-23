@@ -23,6 +23,7 @@ export default function EditImagePage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadImage = async () => {
@@ -82,6 +83,19 @@ export default function EditImagePage() {
         textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
       }
     }, 0);
+  };
+
+  const handleShareImage = (imageId: string) => {
+    const shareUrl = `${window.location.origin}/shared/${imageId}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+      });
   };
 
   const handleEditImage = async () => {
@@ -291,6 +305,12 @@ export default function EditImagePage() {
                   className="flex-1 bg-purple-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm md:text-base"
                 >
                   {t("edit.editImage")}
+                </button>
+                <button
+                  onClick={() => handleShareImage(selectedImage.id)}
+                  className="flex-1 bg-green-600 text-white py-2.5 md:py-3 px-4 md:px-6 rounded-full font-medium hover:bg-green-700 transition-colors text-sm md:text-base"
+                >
+                  {copied ? t("gallery.copied") : t("gallery.share")}
                 </button>
               </div>
             </div>
