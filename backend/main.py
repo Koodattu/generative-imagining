@@ -386,6 +386,7 @@ Return a JSON object with:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=MODERATION_SCHEMA,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
 
@@ -488,6 +489,7 @@ async def describe_image_with_gemini(image_path: str, password: str = None) -> s
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=DESCRIPTION_SCHEMA,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
 
@@ -560,6 +562,7 @@ Return as a JSON object with a 'suggestions' array containing exactly 3 strings.
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=SUGGESTIONS_SCHEMA,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
 
@@ -913,6 +916,7 @@ Return as a JSON object with a 'suggestions' array containing exactly 3 strings.
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=SUGGESTIONS_SCHEMA,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
 

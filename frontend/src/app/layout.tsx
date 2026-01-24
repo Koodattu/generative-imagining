@@ -101,18 +101,21 @@ export const metadata: Metadata = {
   // Web app manifest
   manifest: "/site.webmanifest",
 
-  // Theme color
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
-  ],
-
   // Verification (add your verification codes)
   // verification: {
   //   google: "your-google-verification-code",
   //   yandex: "your-yandex-verification-code",
   // },
 };
+
+export function generateViewport() {
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+      { media: "(prefers-color-scheme: dark)", color: "#1a1a1a" },
+    ],
+  };
+}
 
 export default function RootLayout({
   children,
