@@ -290,6 +290,53 @@ export const adminApi = {
     });
     return response.data;
   },
+
+  async getTokenUsage(token: string): Promise<{
+    total: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      thinking_tokens: number;
+      total_tokens: number;
+      images_generated: number;
+      cost_usd: number;
+      request_count: number;
+    };
+    by_operation: Array<{
+      operation: string;
+      prompt_tokens: number;
+      completion_tokens: number;
+      thinking_tokens: number;
+      total_tokens: number;
+      images_generated: number;
+      cost_usd: number;
+      request_count: number;
+    }>;
+    by_password: Array<{
+      password: string;
+      prompt_tokens: number;
+      completion_tokens: number;
+      thinking_tokens: number;
+      total_tokens: number;
+      images_generated: number;
+      cost_usd: number;
+      request_count: number;
+    }>;
+    by_model: Array<{
+      model: string;
+      prompt_tokens: number;
+      completion_tokens: number;
+      thinking_tokens: number;
+      total_tokens: number;
+      images_generated: number;
+      cost_usd: number;
+      request_count: number;
+    }>;
+  }> {
+    const response = await api.get("/api/admin/token-usage", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
 };
 
 // Cookie management

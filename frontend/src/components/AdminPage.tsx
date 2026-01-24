@@ -36,6 +36,48 @@ interface ModerationFailure {
   created_at: string;
 }
 
+interface TokenUsageStats {
+  total: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    thinking_tokens: number;
+    total_tokens: number;
+    images_generated: number;
+    cost_usd: number;
+    request_count: number;
+  };
+  by_operation: Array<{
+    operation: string;
+    prompt_tokens: number;
+    completion_tokens: number;
+    thinking_tokens: number;
+    total_tokens: number;
+    images_generated: number;
+    cost_usd: number;
+    request_count: number;
+  }>;
+  by_password: Array<{
+    password: string;
+    prompt_tokens: number;
+    completion_tokens: number;
+    thinking_tokens: number;
+    total_tokens: number;
+    images_generated: number;
+    cost_usd: number;
+    request_count: number;
+  }>;
+  by_model: Array<{
+    model: string;
+    prompt_tokens: number;
+    completion_tokens: number;
+    thinking_tokens: number;
+    total_tokens: number;
+    images_generated: number;
+    cost_usd: number;
+    request_count: number;
+  }>;
+}
+
 export default function AdminPage() {
   const { t } = useLocale();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,7 +86,7 @@ export default function AdminPage() {
   const [images, setImages] = useState<ImageDataType[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImageDataType | null>(null);
-  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords" | "guidelines" | "moderation">("images");
+  const [activeTab, setActiveTab] = useState<"images" | "stats" | "passwords" | "guidelines" | "moderation" | "costs">("images");
   const [passwords, setPasswords] = useState<PasswordData[]>([]);
   const [newPassword, setNewPassword] = useState({
     password: "",
@@ -57,6 +99,7 @@ export default function AdminPage() {
   const [isDefaultGuidelines, setIsDefaultGuidelines] = useState(true);
   const [guidelinesChanged, setGuidelinesChanged] = useState(false);
   const [moderationFailures, setModerationFailures] = useState<ModerationFailure[]>([]);
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageStats | null>(null);
 
   useEffect(() => {
     // Check if already authenticated
@@ -70,12 +113,13 @@ export default function AdminPage() {
   const loadAdminData = async (token: string) => {
     setLoading(true);
     try {
-      const [imagesResult, statsResult, passwordsResult, guidelinesResult, failuresResult] = await Promise.all([
+      const [imagesResult, statsResult, passwordsResult, guidelinesResult, failuresResult, tokenUsageResult] = await Promise.all([
         adminApi.getAllImages(token),
         adminApi.getStats(token),
         adminApi.getPasswords(token),
         adminApi.getModerationGuidelines(token),
         adminApi.getModerationFailures(token),
+        adminApi.getTokenUsage(token),
       ]);
       setImages(imagesResult.images);
       setStats(statsResult);
@@ -84,6 +128,7 @@ export default function AdminPage() {
       setIsDefaultGuidelines(guidelinesResult.is_default);
       setGuidelinesChanged(false);
       setModerationFailures(failuresResult.failures);
+      setTokenUsage(tokenUsageResult);
       setStats(statsResult);
       setPasswords(passwordsResult.passwords);
     } catch (error) {
@@ -125,6 +170,7 @@ export default function AdminPage() {
     setIsDefaultGuidelines(true);
     setGuidelinesChanged(false);
     setModerationFailures([]);
+    setTokenUsage(null);
   };
 
   const handleCreatePassword = async () => {
@@ -348,6 +394,14 @@ export default function AdminPage() {
             }`}
           >
             Failed ({moderationFailures.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("costs")}
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm ${
+              activeTab === "costs" ? "border-blue-500 text-blue-500" : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Costs
           </button>
         </nav>
       </div>
@@ -767,6 +821,165 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Costs Tab */}
+          {activeTab === "costs" && tokenUsage && (
+            <div className="space-y-4 md:space-y-6">
+              {/* Total Overview */}
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100 mb-4">Total API Usage & Costs</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <div className="bg-[#1a1a1a] rounded-lg p-4">
+                    <div className="text-2xl md:text-3xl font-bold text-green-400">${tokenUsage.total.cost_usd.toFixed(4)}</div>
+                    <div className="text-sm text-gray-400">Total Cost (USD)</div>
+                  </div>
+                  <div className="bg-[#1a1a1a] rounded-lg p-4">
+                    <div className="text-2xl md:text-3xl font-bold text-blue-400">{tokenUsage.total.request_count.toLocaleString()}</div>
+                    <div className="text-sm text-gray-400">Total Requests</div>
+                  </div>
+                  <div className="bg-[#1a1a1a] rounded-lg p-4">
+                    <div className="text-2xl md:text-3xl font-bold text-purple-400">{tokenUsage.total.images_generated.toLocaleString()}</div>
+                    <div className="text-sm text-gray-400">Images Generated</div>
+                  </div>
+                  <div className="bg-[#1a1a1a] rounded-lg p-4">
+                    <div className="text-2xl md:text-3xl font-bold text-yellow-400">{(tokenUsage.total.total_tokens / 1000).toFixed(1)}k</div>
+                    <div className="text-sm text-gray-400">Total Tokens</div>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-3 md:gap-4">
+                  <div className="bg-[#1a1a1a] rounded-lg p-3">
+                    <div className="text-lg font-semibold text-gray-200">{tokenUsage.total.prompt_tokens.toLocaleString()}</div>
+                    <div className="text-xs text-gray-400">Input Tokens</div>
+                  </div>
+                  <div className="bg-[#1a1a1a] rounded-lg p-3">
+                    <div className="text-lg font-semibold text-gray-200">{tokenUsage.total.completion_tokens.toLocaleString()}</div>
+                    <div className="text-xs text-gray-400">Output Tokens</div>
+                  </div>
+                  <div className="bg-[#1a1a1a] rounded-lg p-3">
+                    <div className="text-lg font-semibold text-gray-200">{tokenUsage.total.thinking_tokens.toLocaleString()}</div>
+                    <div className="text-xs text-gray-400">Thinking Tokens</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* By Operation Type */}
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100 mb-4">Costs by Operation Type</h3>
+                {tokenUsage.by_operation.length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No usage data yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Operation</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Requests</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Images</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Tokens</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Cost (USD)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {tokenUsage.by_operation.map((item) => (
+                          <tr key={item.operation} className="hover:bg-[#3a3a3a]">
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-200 font-medium capitalize">{item.operation.replace(/_/g, " ")}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.request_count.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.images_generated}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.total_tokens.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-green-400 text-right font-medium">${item.cost_usd.toFixed(4)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* By Password */}
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100 mb-4">Costs by Password</h3>
+                {tokenUsage.by_password.length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No usage data yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Password</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Requests</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Images</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Tokens</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Cost (USD)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {tokenUsage.by_password.map((item) => (
+                          <tr key={item.password} className="hover:bg-[#3a3a3a]">
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-200 font-medium font-mono">
+                              {item.password === "admin" ? <span className="text-yellow-400">admin</span> : item.password}
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.request_count.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.images_generated}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.total_tokens.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-green-400 text-right font-medium">${item.cost_usd.toFixed(4)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* By Model */}
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-100 mb-4">Costs by Model</h3>
+                {tokenUsage.by_model.length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No usage data yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1a1a1a]">
+                        <tr>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Model</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Requests</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Images</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Input Tokens</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Output Tokens</th>
+                          <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Cost (USD)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {tokenUsage.by_model.map((item) => (
+                          <tr key={item.model} className="hover:bg-[#3a3a3a]">
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-200 font-medium font-mono">{item.model}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.request_count.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.images_generated}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.prompt_tokens.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{item.completion_tokens.toLocaleString()}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-green-400 text-right font-medium">${item.cost_usd.toFixed(4)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing Info */}
+              <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
+                <h3 className="text-lg font-semibold text-gray-100 mb-3">Pricing Reference</h3>
+                <div className="text-sm text-gray-400 space-y-2">
+                  <p>
+                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: $0.15/1M input tokens, $0.60/1M output tokens, $3.50/1M thinking tokens
+                  </p>
+                  <p>
+                    <span className="font-mono text-gray-300">gemini-2.5-flash-image</span>: $0.039 per image generated + token costs
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">Note: Prices are estimates based on published Gemini API pricing. Actual costs may vary.</p>
+                </div>
+              </div>
             </div>
           )}
         </>
