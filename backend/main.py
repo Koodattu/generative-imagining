@@ -494,7 +494,7 @@ async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes
             config=types.GenerateImagesConfig(
                 number_of_images=1,
                 aspect_ratio="1:1",
-                person_generation="allow_all",
+                person_generation='ALLOW_ALL',
             ),
         )
 
@@ -965,6 +965,13 @@ PROMPT STRUCTURE (required for every prompt):
 - Context/background: describe where it is and what surrounds it
 - Style: include a visual style (for example: photograph, sketch, pastel painting, charcoal drawing, isometric 3D)
 
+EXAMPLES:
+- "A sketch of a modern apartment building surrounded by skyscrapers"
+- "A pastel painting of a golden retriever playing in a colorful autumn park"
+- "A photograph of a vintage car driving on a coastal road during sunset"
+
+IMPORTANT: These are just examples to illustrate the structure and quality level we are looking for. Try to be creative and original with your suggestions, and do not copy these examples!
+
 QUALITY RULES:
 - Naturally include '{data.keyword}' in each prompt
 - Family-friendly content suitable for ages below 16
@@ -983,6 +990,13 @@ PROMPT STRUCTURE (required for every prompt):
 - Subject: clearly name the main person, animal, object, or scene
 - Context/background: describe where it is and what surrounds it
 - Style: include a visual style (for example: photograph, sketch, pastel painting, charcoal drawing, isometric 3D)
+
+EXAMPLES:
+- "A sketch of a modern apartment building surrounded by skyscrapers"
+- "A pastel painting of a golden retriever playing in a colorful autumn park"
+- "A photograph of a vintage car driving on a coastal road during sunset"
+
+IMPORTANT: These are just examples to illustrate the structure and quality level we are looking for. Try to be creative and original with your suggestions, and do not copy these examples!
 
 QUALITY RULES:
 - Family-friendly content suitable for ages below 16
