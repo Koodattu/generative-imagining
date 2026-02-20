@@ -508,13 +508,7 @@ async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes
 
         if response.generated_images and len(response.generated_images) > 0:
             image = response.generated_images[0].image
-            # Convert to bytes - the image object has image_bytes attribute
-            if hasattr(image, '_image_bytes'):
-                return image._image_bytes
-            # Fallback: save to BytesIO via PIL
-            img_bytes = io.BytesIO()
-            image.save(img_bytes, format='PNG')
-            return img_bytes.getvalue()
+            return image.image_bytes
 
         raise Exception("No image generated in response")
 
