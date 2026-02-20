@@ -493,8 +493,7 @@ async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes
             prompt=prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,
-                aspect_ratio="1:1",
-                person_generation='ALLOW_ALL',
+                aspect_ratio="1:1"
             ),
         )
 
