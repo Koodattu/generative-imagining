@@ -380,7 +380,7 @@ Return a JSON object with:
 - is_appropriate: true if the prompt follows the guidelines, false otherwise
 - rejection_reason: if is_appropriate is false, provide a brief explanation (one sentence) why it was rejected. If is_appropriate is true, set this to an empty string."""
 
-        response = genai_client.models.generate_content(
+        response = await genai_client.aio.models.generate_content(
             model='gemini-2.5-flash',
             contents=moderation_prompt,
             config=types.GenerateContentConfig(
@@ -429,9 +429,7 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
             raise Exception("Rate limit exceeded. Please try again in a moment.")
 
         # Using Gemini's native image generation with chat API
-        chat = genai_client.chats.create(model="gemini-2.5-flash-image")
-
-        chat = genai_client.chats.create(
+        chat = genai_client.aio.chats.create(
             model="gemini-2.5-flash-image",
             config=types.GenerateContentConfig(
                 response_modalities=['IMAGE'],
@@ -441,7 +439,7 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
         # Send the prompt to generate the image
         instruction = f"Generate a high-quality image based on this prompt: {prompt}"
 
-        response = chat.send_message(instruction)
+        response = await chat.send_message(instruction)
 
         # Track token usage for image generation
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
@@ -482,7 +480,7 @@ async def describe_image_with_gemini(image_path: str, password: str = None) -> s
         img = Image.open(image_path)
 
         # Generate description using Gemini
-        response = genai_client.models.generate_content(
+        response = await genai_client.aio.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
                 img,
@@ -569,7 +567,7 @@ REMEMBER: These are just examples, try to be creative and original with your sug
 
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
-        response = genai_client.models.generate_content(
+        response = await genai_client.aio.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
                 img,
@@ -616,7 +614,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
         img = Image.open(original_image_path)
 
         # Using Gemini's native image editing with chat API
-        chat = genai_client.chats.create(
+        chat = genai_client.aio.chats.create(
             model="gemini-2.5-flash-image",
             config=types.GenerateContentConfig(
                 response_modalities=['IMAGE'],
@@ -626,7 +624,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
         # Send the image and edit instruction
         instruction = f"Edit this image according to the following instruction: {edit_prompt}"
 
-        response = chat.send_message([instruction, img])
+        response = await chat.send_message([instruction, img])
 
         # Track token usage for image editing
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
@@ -940,7 +938,7 @@ REMEMBER: These are just examples, try to be creative and original with your sug
 
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
-        response = genai_client.models.generate_content(
+        response = await genai_client.aio.models.generate_content(
             model='gemini-2.5-flash',
             contents=query,
             config=types.GenerateContentConfig(
