@@ -81,6 +81,11 @@ GEMINI_PRICING = {
         "input_per_million": 0.15,  # For input tokens if any
         "output_per_million": 0.60,
     },
+    "imagen-4.0-fast-generate-001": {
+        "per_image": 0.020,  # Cost per image generated
+        "input_per_million": 0,
+        "output_per_million": 0,
+    },
 }
 
 # Default moderation guidelines
@@ -137,6 +142,13 @@ class PasswordCreate(BaseModel):
     image_limit: Optional[int] = 5
     suggestion_limit: Optional[int] = 50
     bypass_watchdog: Optional[bool] = False
+    image_model: Optional[str] = "gemini"
+
+class PasswordUpdate(BaseModel):
+    image_limit: Optional[int] = None
+    suggestion_limit: Optional[int] = None
+    valid_hours: Optional[int] = None
+    image_model: Optional[str] = None
 
 class PasswordValidate(BaseModel):
     password: str
@@ -208,15 +220,15 @@ async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends
         raise HTTPException(status_code=401, detail="Invalid admin credentials")
     return credentials
 
-async def validate_password(password: str, user_guid: str, usage_type: str = "image") -> tuple[bool, bool]:
+async def validate_password(password: str, user_guid: str, usage_type: str = "image") -> tuple[bool, bool, Optional[dict]]:
     """
     Validate password and check usage limits
     usage_type can be 'image' (for generation/editing) or 'suggestion'
-    Returns tuple: (is_valid, bypass_watchdog)
+    Returns tuple: (is_valid, bypass_watchdog, password_doc)
     """
     # Admin password always works (case-sensitive)
     if password == ADMIN_PASSWORD:
-        return (True, False)
+        return (True, False, None)
 
     # Check if password exists and is not expired (case-insensitive for user passwords)
     password_lower = password.lower()
@@ -226,7 +238,7 @@ async def validate_password(password: str, user_guid: str, usage_type: str = "im
     })
 
     if not password_doc:
-        return (False, False)
+        return (False, False, None)
 
     bypass_watchdog = password_doc.get("bypass_watchdog", False)
 
@@ -249,12 +261,12 @@ async def validate_password(password: str, user_guid: str, usage_type: str = "im
     # Check limits
     if usage_type == "image":
         if usage_doc["image_count"] >= password_doc["image_limit"]:
-            return (False, False)
+            return (False, False, None)
     elif usage_type == "suggestion":
         if usage_doc["suggestion_count"] >= password_doc["suggestion_limit"]:
-            return (False, False)
+            return (False, False, None)
 
-    return (True, bypass_watchdog)
+    return (True, bypass_watchdog, password_doc)
 
 async def increment_usage(password: str, user_guid: str, usage_type: str = "image"):
     """Increment usage counter for user+password combination"""
@@ -467,6 +479,47 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
 
     except Exception as e:
         print(f"Error generating image: {e}")
+        raise Exception(f"Failed to generate image: {str(e)}")
+
+async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes:
+    """Generate image using Imagen 4.0 Fast"""
+    try:
+        # Check rate limit before making API call
+        if not await check_rate_limit():
+            raise Exception("Rate limit exceeded. Please try again in a moment.")
+
+        response = await genai_client.aio.models.generate_images(
+            model='imagen-4.0-fast-generate-001',
+            prompt=prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=1,
+                aspect_ratio="1:1",
+                person_generation="allow_all",
+            ),
+        )
+
+        # Track token usage for imagen generation
+        await track_token_usage(
+            operation_type="image_generation",
+            model="imagen-4.0-fast-generate-001",
+            images_generated=1,
+            password=password
+        )
+
+        if response.generated_images and len(response.generated_images) > 0:
+            image = response.generated_images[0].image
+            # Convert to bytes - the image object has image_bytes attribute
+            if hasattr(image, '_image_bytes'):
+                return image._image_bytes
+            # Fallback: save to BytesIO via PIL
+            img_bytes = io.BytesIO()
+            image.save(img_bytes, format='PNG')
+            return img_bytes.getvalue()
+
+        raise Exception("No image generated in response")
+
+    except Exception as e:
+        print(f"Error generating image with Imagen: {e}")
         raise Exception(f"Failed to generate image: {str(e)}")
 
 async def describe_image_with_gemini(image_path: str, password: str = None) -> str:
@@ -698,9 +751,14 @@ async def generate_image(data: ImageGenerate):
             raise HTTPException(status_code=404, detail="User not found")
 
         # Validate password and check limits
-        is_valid, bypass_watchdog = await validate_password(data.password, data.user_guid, "image")
+        is_valid, bypass_watchdog, password_doc = await validate_password(data.password, data.user_guid, "image")
         if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
+
+        # Determine which image generation model to use
+        image_model = "gemini"  # default
+        if password_doc and password_doc.get("image_model"):
+            image_model = password_doc["image_model"]
 
         # Moderate content before generation (skip if bypass_watchdog is enabled)
         if not bypass_watchdog:
@@ -708,8 +766,11 @@ async def generate_image(data: ImageGenerate):
             if not is_appropriate:
                 raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
-        # Generate image
-        image_data = await generate_image_with_gemini(data.prompt, password=data.password)
+        # Generate image using the configured model
+        if image_model == "imagen":
+            image_data = await generate_image_with_imagen(data.prompt, password=data.password)
+        else:
+            image_data = await generate_image_with_gemini(data.prompt, password=data.password)
 
         # Save image
         image_id = str(uuid.uuid4())
@@ -756,7 +817,7 @@ async def edit_image(data: ImageEdit):
     """Edit existing image"""
     try:
         # Validate password and check limits
-        is_valid, bypass_watchdog = await validate_password(data.password, data.user_guid, "image")
+        is_valid, bypass_watchdog, _ = await validate_password(data.password, data.user_guid, "image")
         if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
@@ -886,7 +947,7 @@ async def suggest_prompts(data: SuggestPrompts):
     """Get prompt suggestions"""
     try:
         # Validate password and check limits
-        is_valid, _ = await validate_password(data.password, data.user_guid, "suggestion")
+        is_valid, _, _ = await validate_password(data.password, data.user_guid, "suggestion")
         if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
@@ -903,40 +964,42 @@ async def suggest_prompts(data: SuggestPrompts):
                 lang_instruction = " Respond in English."
 
         if data.keyword:
-            query = f"""Generate exactly 3 fun image prompts based on '{data.keyword}'.
+            query = f"""Generate exactly 3 high-quality image prompts based on '{data.keyword}'.
 
-GUIDELINES:
-- Try to incorporate the keyword into each prompt
+PROMPT STRUCTURE (required for every prompt):
+- Subject: clearly name the main person, animal, object, or scene
+- Context/background: describe where it is and what surrounds it
+- Style: include a visual style (for example: photograph, sketch, pastel painting, charcoal drawing, isometric 3D)
+
+QUALITY RULES:
+- Naturally include '{data.keyword}' in each prompt
 - Family-friendly content suitable for ages below 16
-- Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
-- Keep prompts grounded and realistic, not abstract or overly fantastical
-- Each prompt: 5-10 words, clear and descriptive{lang_instruction}
+- Grounded, physical, real-world subjects and settings
+- Clear, descriptive language with meaningful modifiers
+- One sentence per prompt, 12-22 words each{lang_instruction}
 
-EXAMPLES:
-- "A cat wearing a wizard hat"
-- "A beach scene with colorful umbrellas"
-- "A sports car driving on a mountain road"
-
-REMEMBER: These are just examples, try to be creative and original with your suggestions!
-
-Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
+FORMAT:
+- Return as JSON with a 'suggestions' array containing exactly 3 strings
+- Do not include numbering, labels, or extra text outside the JSON
+"""
         else:
-            query = f"""Generate exactly 3 fun and random image prompts.
+            query = f"""Generate exactly 3 high-quality and creative image prompts.
 
-GUIDELINES:
+PROMPT STRUCTURE (required for every prompt):
+- Subject: clearly name the main person, animal, object, or scene
+- Context/background: describe where it is and what surrounds it
+- Style: include a visual style (for example: photograph, sketch, pastel painting, charcoal drawing, isometric 3D)
+
+QUALITY RULES:
 - Family-friendly content suitable for ages below 16
-- Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
-- Keep prompts grounded and realistic, not abstract or overly fantastical
-- Each prompt: 5-10 words, clear and descriptive{lang_instruction}
+- Grounded, physical, real-world subjects and settings
+- Clear, descriptive language with meaningful modifiers
+- One sentence per prompt, 12-22 words each{lang_instruction}
 
-EXAMPLES:
-- "A cat wearing a wizard hat"
-- "A beach scene with colorful umbrellas"
-- "A sports car driving on a mountain road"
-
-REMEMBER: These are just examples, try to be creative and original with your suggestions!
-
-Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
+FORMAT:
+- Return as JSON with a 'suggestions' array containing exactly 3 strings
+- Do not include numbering, labels, or extra text outside the JSON
+"""
 
         response = await genai_client.aio.models.generate_content(
             model='gemini-2.5-flash',
@@ -993,7 +1056,7 @@ async def suggest_edits(image_id: str, data: SuggestEdits):
     """Get edit suggestions for image"""
     try:
         # Validate password and check limits
-        is_valid, _ = await validate_password(data.password, data.user_guid, "suggestion")
+        is_valid, _, _ = await validate_password(data.password, data.user_guid, "suggestion")
         if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
@@ -1101,6 +1164,7 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
             "image_limit": data.image_limit,
             "suggestion_limit": data.suggestion_limit,
             "bypass_watchdog": data.bypass_watchdog,
+            "image_model": data.image_model if data.image_model in ("gemini", "imagen") else "gemini",
             "created_at": datetime.utcnow(),
             "expires_at": expires_at
         }
@@ -1118,7 +1182,8 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
             "expires_at": expires_at,
             "image_limit": data.image_limit,
             "suggestion_limit": data.suggestion_limit,
-            "bypass_watchdog": data.bypass_watchdog
+            "bypass_watchdog": data.bypass_watchdog,
+            "image_model": password_doc["image_model"]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating password: {str(e)}")
@@ -1137,7 +1202,8 @@ async def get_passwords(credentials: HTTPAuthorizationCredentials = Depends(veri
                 "created_at": pwd["created_at"],
                 "expires_at": pwd["expires_at"],
                 "is_expired": pwd["expires_at"] < datetime.utcnow(),
-                "bypass_watchdog": pwd.get("bypass_watchdog", False)
+                "bypass_watchdog": pwd.get("bypass_watchdog", False),
+                "image_model": pwd.get("image_model", "gemini")
             })
 
         return {"passwords": passwords}
@@ -1163,6 +1229,55 @@ async def delete_password(password: str, credentials: HTTPAuthorizationCredentia
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting password: {str(e)}")
+
+@app.put("/api/admin/passwords/{password}")
+async def update_password(password: str, data: PasswordUpdate, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):
+    """Update an existing password's settings (admin only)"""
+    try:
+        password_lower = password.lower()
+
+        # Check password exists
+        existing = await passwords_collection.find_one({"password": password_lower})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Password not found")
+
+        # Build update dict with only provided fields
+        update_fields = {}
+        if data.image_limit is not None:
+            update_fields["image_limit"] = data.image_limit
+        if data.suggestion_limit is not None:
+            update_fields["suggestion_limit"] = data.suggestion_limit
+        if data.image_model is not None and data.image_model in ("gemini", "imagen"):
+            update_fields["image_model"] = data.image_model
+        if data.valid_hours is not None:
+            from datetime import timedelta
+            update_fields["valid_hours"] = data.valid_hours
+            update_fields["expires_at"] = datetime.utcnow() + timedelta(hours=data.valid_hours)
+
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="No valid fields to update")
+
+        await passwords_collection.update_one(
+            {"password": password_lower},
+            {"$set": update_fields}
+        )
+
+        # Fetch and return updated document
+        updated = await passwords_collection.find_one({"password": password_lower})
+        return {
+            "message": "Password updated successfully",
+            "password": updated["password"],
+            "image_limit": updated["image_limit"],
+            "suggestion_limit": updated["suggestion_limit"],
+            "valid_hours": updated["valid_hours"],
+            "expires_at": updated["expires_at"],
+            "bypass_watchdog": updated.get("bypass_watchdog", False),
+            "image_model": updated.get("image_model", "gemini")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating password: {str(e)}")
 
 @app.delete("/api/admin/images/{image_id}")
 async def delete_image(image_id: str, credentials: HTTPAuthorizationCredentials = Depends(verify_admin_token)):

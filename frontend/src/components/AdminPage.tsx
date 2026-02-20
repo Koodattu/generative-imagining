@@ -26,6 +26,7 @@ interface PasswordData {
   expires_at: string;
   is_expired: boolean;
   bypass_watchdog: boolean;
+  image_model: string;
 }
 
 interface ModerationFailure {
@@ -94,7 +95,15 @@ export default function AdminPage() {
     imageLimit: 5,
     suggestionLimit: 50,
     bypassWatchdog: false,
+    imageModel: "gemini" as "gemini" | "imagen",
   });
+  const [editingPassword, setEditingPassword] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{
+    imageLimit: number;
+    suggestionLimit: number;
+    validHours: number;
+    imageModel: string;
+  }>({ imageLimit: 0, suggestionLimit: 0, validHours: 0, imageModel: "gemini" });
   const [guidelines, setGuidelines] = useState("");
   const [isDefaultGuidelines, setIsDefaultGuidelines] = useState(true);
   const [guidelinesChanged, setGuidelinesChanged] = useState(false);
@@ -181,7 +190,15 @@ export default function AdminPage() {
       const token = cookieManager.getAdminToken();
       if (!token) return;
 
-      await adminApi.createPassword(token, newPassword.password, newPassword.validHours, newPassword.imageLimit, newPassword.suggestionLimit, newPassword.bypassWatchdog);
+      await adminApi.createPassword(
+        token,
+        newPassword.password,
+        newPassword.validHours,
+        newPassword.imageLimit,
+        newPassword.suggestionLimit,
+        newPassword.bypassWatchdog,
+        newPassword.imageModel,
+      );
 
       // Reload passwords
       const passwordsResult = await adminApi.getPasswords(token);
@@ -194,6 +211,7 @@ export default function AdminPage() {
         imageLimit: 5,
         suggestionLimit: 50,
         bypassWatchdog: false,
+        imageModel: "gemini",
       });
 
       alert(t("admin.passwords.createSuccess"));
@@ -249,6 +267,49 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error deleting password:", error);
       alert(t("admin.passwords.deleteError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartEdit = (pwd: PasswordData) => {
+    setEditingPassword(pwd.password);
+    setEditForm({
+      imageLimit: pwd.image_limit,
+      suggestionLimit: pwd.suggestion_limit,
+      validHours: pwd.valid_hours,
+      imageModel: pwd.image_model || "gemini",
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPassword(null);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!editingPassword) return;
+
+    setLoading(true);
+    try {
+      const token = cookieManager.getAdminToken();
+      if (!token) return;
+
+      await adminApi.updatePassword(token, editingPassword, {
+        image_limit: editForm.imageLimit,
+        suggestion_limit: editForm.suggestionLimit,
+        valid_hours: editForm.validHours,
+        image_model: editForm.imageModel,
+      });
+
+      // Reload passwords
+      const passwordsResult = await adminApi.getPasswords(token);
+      setPasswords(passwordsResult.passwords);
+      setEditingPassword(null);
+
+      alert("Password updated successfully");
+    } catch (error) {
+      console.error("Error updating password:", error);
+      alert("Error updating password");
     } finally {
       setLoading(false);
     }
@@ -616,6 +677,17 @@ export default function AdminPage() {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs md:text-sm text-gray-400 mb-1">Image Gen Model</label>
+                    <select
+                      value={newPassword.imageModel}
+                      onChange={(e) => setNewPassword({ ...newPassword, imageModel: e.target.value as "gemini" | "imagen" })}
+                      className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
+                    >
+                      <option value="gemini">Gemini 2.5 Flash (Nano Banana)</option>
+                      <option value="imagen">Imagen 4.0 Fast</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-xs md:text-sm text-gray-400 mb-1">Bypass Watchdog</label>
                     <div className="flex items-center h-[42px]">
                       <input
@@ -658,6 +730,7 @@ export default function AdminPage() {
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.imageLimit")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.suggestionLimit")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Bypass Watchdog</th>
+                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Image Model</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.expiresAt")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.passwords.status")}</th>
                           <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
@@ -667,9 +740,45 @@ export default function AdminPage() {
                         {passwords.map((pwd, index) => (
                           <tr key={index} className={pwd.is_expired ? "opacity-50" : ""}>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300 font-mono">{pwd.password}</td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.valid_hours}h</td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.image_limit}</td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{pwd.suggestion_limit}</td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">
+                              {editingPassword === pwd.password ? (
+                                <input
+                                  type="number"
+                                  value={editForm.validHours}
+                                  onChange={(e) => setEditForm({ ...editForm, validHours: parseInt(e.target.value) || 1 })}
+                                  className="w-16 px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
+                                  min="1"
+                                />
+                              ) : (
+                                <>{pwd.valid_hours}h</>
+                              )}
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">
+                              {editingPassword === pwd.password ? (
+                                <input
+                                  type="number"
+                                  value={editForm.imageLimit}
+                                  onChange={(e) => setEditForm({ ...editForm, imageLimit: parseInt(e.target.value) || 1 })}
+                                  className="w-16 px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
+                                  min="1"
+                                />
+                              ) : (
+                                pwd.image_limit
+                              )}
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">
+                              {editingPassword === pwd.password ? (
+                                <input
+                                  type="number"
+                                  value={editForm.suggestionLimit}
+                                  onChange={(e) => setEditForm({ ...editForm, suggestionLimit: parseInt(e.target.value) || 1 })}
+                                  className="w-20 px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
+                                  min="1"
+                                />
+                              ) : (
+                                pwd.suggestion_limit
+                              )}
+                            </td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                               <span
                                 className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -678,6 +787,26 @@ export default function AdminPage() {
                               >
                                 {pwd.bypass_watchdog ? "Enabled" : "Disabled"}
                               </span>
+                            </td>
+                            <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">
+                              {editingPassword === pwd.password ? (
+                                <select
+                                  value={editForm.imageModel}
+                                  onChange={(e) => setEditForm({ ...editForm, imageModel: e.target.value })}
+                                  className="px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
+                                >
+                                  <option value="gemini">Gemini</option>
+                                  <option value="imagen">Imagen</option>
+                                </select>
+                              ) : (
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    (pwd.image_model || "gemini") === "imagen" ? "bg-purple-900/50 text-purple-200" : "bg-cyan-900/50 text-cyan-200"
+                                  }`}
+                                >
+                                  {(pwd.image_model || "gemini") === "imagen" ? "Imagen 4.0" : "Gemini"}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-300">{new Date(pwd.expires_at).toLocaleString()}</td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap">
@@ -690,13 +819,41 @@ export default function AdminPage() {
                               </span>
                             </td>
                             <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                              <button
-                                onClick={() => handleDeletePassword(pwd.password)}
-                                disabled={loading}
-                                className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm font-medium"
-                              >
-                                Delete
-                              </button>
+                              {editingPassword === pwd.password ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={handleUpdatePassword}
+                                    disabled={loading}
+                                    className="text-green-400 hover:text-green-300 disabled:opacity-50 text-xs md:text-sm font-medium"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    disabled={loading}
+                                    className="text-gray-400 hover:text-gray-300 disabled:opacity-50 text-xs md:text-sm font-medium"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleStartEdit(pwd)}
+                                    disabled={loading}
+                                    className="text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm font-medium"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeletePassword(pwd.password)}
+                                    disabled={loading}
+                                    className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm font-medium"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}

@@ -179,6 +179,7 @@ export const adminApi = {
     imageLimit: number,
     suggestionLimit: number,
     bypassWatchdog: boolean = false,
+    imageModel: string = "gemini",
   ): Promise<{
     message: string;
     password: string;
@@ -186,6 +187,7 @@ export const adminApi = {
     image_limit: number;
     suggestion_limit: number;
     bypass_watchdog: boolean;
+    image_model: string;
   }> {
     const response = await api.post(
       "/api/admin/passwords/create",
@@ -195,6 +197,7 @@ export const adminApi = {
         image_limit: imageLimit,
         suggestion_limit: suggestionLimit,
         bypass_watchdog: bypassWatchdog,
+        image_model: imageModel,
       },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -213,6 +216,7 @@ export const adminApi = {
       expires_at: string;
       is_expired: boolean;
       bypass_watchdog: boolean;
+      image_model: string;
     }>;
   }> {
     const response = await api.get("/api/admin/passwords", {
@@ -223,6 +227,31 @@ export const adminApi = {
 
   async deletePassword(token: string, password: string): Promise<{ message: string }> {
     const response = await api.delete(`/api/admin/passwords/${encodeURIComponent(password)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  async updatePassword(
+    token: string,
+    password: string,
+    updates: {
+      image_limit?: number;
+      suggestion_limit?: number;
+      valid_hours?: number;
+      image_model?: string;
+    },
+  ): Promise<{
+    message: string;
+    password: string;
+    image_limit: number;
+    suggestion_limit: number;
+    valid_hours: number;
+    expires_at: string;
+    bypass_watchdog: boolean;
+    image_model: string;
+  }> {
+    const response = await api.put(`/api/admin/passwords/${encodeURIComponent(password)}`, updates, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
