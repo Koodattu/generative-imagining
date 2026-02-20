@@ -456,6 +456,8 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
                 password=password
             )
 
+        print(f"Gemini response: {response}")
+
         # Extract the image from response parts
         for part in response.candidates[0].content.parts:
             if part.inline_data is not None:
@@ -539,6 +541,13 @@ GUIDELINES:
 - The suggestions should be suitable for image generation prompts
 - Lean into the cool factor
 
+EXAMPLES:
+- "Add sunglasses to the cat"
+- "Change the season to winter"
+- "Make it a night scene"
+
+REMEMBER: These are just examples, try to be creative and original with your suggestions!
+
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
         else:
             query = f"""This image shows: {current_description}. Generate exactly 3 simple, practical edit suggestions.
@@ -550,6 +559,13 @@ GUIDELINES:
 - Each suggestion: 10 words, clear and actionable{lang_instruction}
 - The suggestions should be suitable for image editing prompts
 - Lean into the cool factor
+
+EXAMPLES:
+- "Add sunglasses to the cat"
+- "Change the season to winter"
+- "Make it a night scene"
+
+REMEMBER: These are just examples, try to be creative and original with your suggestions!
 
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
@@ -898,15 +914,29 @@ GUIDELINES:
 - Keep prompts grounded and realistic, not abstract or overly fantastical
 - Each prompt: 5-10 words, clear and descriptive{lang_instruction}
 
+EXAMPLES:
+- "A cat wearing a wizard hat"
+- "A beach scene with colorful umbrellas"
+- "A sports car driving on a mountain road"
+
+REMEMBER: These are just examples, try to be creative and original with your suggestions!
+
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
         else:
-            query = f"""Generate exactly 3 fun, random image prompts.
+            query = f"""Generate exactly 3 fun and random image prompts.
 
 GUIDELINES:
 - Family-friendly content suitable for ages below 16
 - Focus on real, physical subjects: animals, nature, sports, hobbies, everyday activities, objects, places
 - Keep prompts grounded and realistic, not abstract or overly fantastical
 - Each prompt: 5-10 words, clear and descriptive{lang_instruction}
+
+EXAMPLES:
+- "A cat wearing a wizard hat"
+- "A beach scene with colorful umbrellas"
+- "A sports car driving on a mountain road"
+
+REMEMBER: These are just examples, try to be creative and original with your suggestions!
 
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
