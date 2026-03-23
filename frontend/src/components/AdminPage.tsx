@@ -109,6 +109,14 @@ export default function AdminPage() {
   const [guidelinesChanged, setGuidelinesChanged] = useState(false);
   const [moderationFailures, setModerationFailures] = useState<ModerationFailure[]>([]);
   const [tokenUsage, setTokenUsage] = useState<TokenUsageStats | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [passwordFilter, setPasswordFilter] = useState<string>("");
+
+  // Compute unique passwords from images for the filter dropdown
+  const uniquePasswords = Array.from(new Set(images.map((img) => img.created_with_password || "N/A"))).sort();
+
+  // Filter images by selected password
+  const filteredImages = passwordFilter ? images.filter((img) => (img.created_with_password || "N/A") === passwordFilter) : images;
 
   useEffect(() => {
     // Check if already authenticated
@@ -486,58 +494,150 @@ export default function AdminPage() {
                   <p className="text-gray-400">{t("admin.noImages.desc")}</p>
                 </div>
               ) : (
-                <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-[#1a1a1a]">
-                        <tr>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.image")}</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.prompt")}</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.description")}</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.dateTime")}</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.password")}</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.user")}</th>
-                          <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.actions")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-700">
-                        {images.map((image) => (
-                          <tr key={image.id} className="hover:bg-[#3a3a3a] transition-colors">
-                            <td className="px-3 md:px-6 py-4">
-                              <div className="relative w-20 h-20 md:w-24 md:h-24 bg-[#1a1a1a] rounded overflow-hidden cursor-pointer" onClick={() => setSelectedImage(image)}>
-                                <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} fill className="object-cover" unoptimized />
+                <>
+                  {/* Toolbar: view toggle + password filter */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">
+                        {filteredImages.length} / {images.length} {t("admin.allImages").toLowerCase()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* Password filter */}
+                      <select
+                        value={passwordFilter}
+                        onChange={(e) => setPasswordFilter(e.target.value)}
+                        className="px-3 py-1.5 bg-[#1a1a1a] text-gray-200 border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
+                      >
+                        <option value="">{t("admin.filter.allPasswords")}</option>
+                        {uniquePasswords.map((pwd) => (
+                          <option key={pwd} value={pwd}>
+                            {pwd}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* View toggle */}
+                      <div className="flex rounded overflow-hidden border border-gray-700">
+                        <button
+                          onClick={() => setViewMode("grid")}
+                          className={`px-3 py-1.5 text-sm transition-colors ${viewMode === "grid" ? "bg-blue-600 text-white" : "bg-[#1a1a1a] text-gray-400 hover:text-gray-200"}`}
+                          title={t("admin.view.grid")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setViewMode("list")}
+                          className={`px-3 py-1.5 text-sm transition-colors ${viewMode === "list" ? "bg-blue-600 text-white" : "bg-[#1a1a1a] text-gray-400 hover:text-gray-200"}`}
+                          title={t("admin.view.list")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grid View */}
+                  {viewMode === "grid" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {filteredImages.map((image) => (
+                        <div key={image.id} className="bg-[#2a2a2a] rounded-lg overflow-hidden group">
+                          <div className="relative aspect-square bg-[#1a1a1a] cursor-pointer" onClick={() => setSelectedImage(image)}>
+                            <Image
+                              src={imagesApi.getImageUrl(image.id)}
+                              alt={image.description}
+                              fill
+                              className="object-cover group-hover:opacity-90 transition-opacity"
+                              unoptimized
+                            />
+                          </div>
+                          <div className="p-3 space-y-2">
+                            <p className="text-sm text-gray-200 line-clamp-2">{image.prompt}</p>
+                            <p className="text-xs text-gray-500 line-clamp-1">{image.description}</p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex px-2 py-0.5 text-xs font-mono rounded bg-blue-900/50 text-blue-200">{image.created_with_password || "N/A"}</span>
+                                <span className="text-xs text-gray-500">{image.user_guid.substring(0, 8)}</span>
                               </div>
-                            </td>
-                            <td className="px-3 md:px-6 py-4 max-w-xs">
-                              <p className="text-xs md:text-sm text-gray-300 line-clamp-3">{image.prompt}</p>
-                            </td>
-                            <td className="px-3 md:px-6 py-4 max-w-xs">
-                              <p className="text-xs md:text-sm text-gray-400 line-clamp-3">{image.description}</p>
-                            </td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                              <p className="text-xs md:text-sm text-gray-300">{new Date(image.created_at).toLocaleString()}</p>
-                            </td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                              <span className="inline-flex px-2 py-1 text-xs font-mono rounded bg-blue-900/50 text-blue-200">{image.created_with_password || "N/A"}</span>
-                            </td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                              <p className="text-xs md:text-sm text-gray-400 font-mono">{image.user_guid.substring(0, 8)}...</p>
-                            </td>
-                            <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                               <button
                                 onClick={() => handleDeleteImage(image.id)}
-                                className="bg-red-600 text-white px-3 py-1.5 rounded text-xs hover:bg-red-700 transition-colors"
+                                className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors"
                                 disabled={loading}
                               >
                                 {t("admin.delete")}
                               </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                            </div>
+                            <p className="text-xs text-gray-500">{new Date(image.created_at).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* List View */}
+                  {viewMode === "list" && (
+                    <div className="bg-[#2a2a2a] rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-[#1a1a1a]">
+                            <tr>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.image")}</th>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.prompt")}</th>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.description")}</th>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.dateTime")}</th>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.password")}</th>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.user")}</th>
+                              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{t("admin.actions")}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {filteredImages.map((image) => (
+                              <tr key={image.id} className="hover:bg-[#3a3a3a] transition-colors">
+                                <td className="px-3 md:px-6 py-4">
+                                  <div className="relative w-20 h-20 md:w-24 md:h-24 bg-[#1a1a1a] rounded overflow-hidden cursor-pointer" onClick={() => setSelectedImage(image)}>
+                                    <Image src={imagesApi.getImageUrl(image.id)} alt={image.description} fill className="object-cover" unoptimized />
+                                  </div>
+                                </td>
+                                <td className="px-3 md:px-6 py-4 max-w-xs">
+                                  <p className="text-xs md:text-sm text-gray-300 line-clamp-3">{image.prompt}</p>
+                                </td>
+                                <td className="px-3 md:px-6 py-4 max-w-xs">
+                                  <p className="text-xs md:text-sm text-gray-400 line-clamp-3">{image.description}</p>
+                                </td>
+                                <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                                  <p className="text-xs md:text-sm text-gray-300">{new Date(image.created_at).toLocaleString()}</p>
+                                </td>
+                                <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                                  <span className="inline-flex px-2 py-1 text-xs font-mono rounded bg-blue-900/50 text-blue-200">{image.created_with_password || "N/A"}</span>
+                                </td>
+                                <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                                  <p className="text-xs md:text-sm text-gray-400 font-mono">{image.user_guid.substring(0, 8)}...</p>
+                                </td>
+                                <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                                  <button
+                                    onClick={() => handleDeleteImage(image.id)}
+                                    className="bg-red-600 text-white px-3 py-1.5 rounded text-xs hover:bg-red-700 transition-colors"
+                                    disabled={loading}
+                                  >
+                                    {t("admin.delete")}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

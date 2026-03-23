@@ -147,6 +147,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "admin.imageDeleted": "Kuva poistettu onnistuneesti",
     "admin.deleteError": "Kuvan poistaminen epäonnistui",
 
+    // Admin - View & Filter
+    "admin.filter.allPasswords": "Kaikki salasanat",
+    "admin.view.grid": "Ruudukkonäkymä",
+    "admin.view.list": "Listanäkymä",
+
     // Admin - Moderation Tab
     "admin.moderation.tab": "Moderointi",
     "admin.moderation.failed": "Epäonnistuneet",
@@ -351,6 +356,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "admin.confirmDelete": "Are you sure you want to delete this image?",
     "admin.imageDeleted": "Image deleted successfully",
     "admin.deleteError": "Failed to delete image",
+
+    // Admin - View & Filter
+    "admin.filter.allPasswords": "All passwords",
+    "admin.view.grid": "Grid view",
+    "admin.view.list": "List view",
 
     // Admin - Moderation Tab
     "admin.moderation.tab": "Moderation",
