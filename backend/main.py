@@ -66,10 +66,13 @@ token_usage_collection = db.token_usage
 # Initialize Gemini AI
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
 
-# Gemini Pricing (as of January 2024) - per 1M tokens in USD
-# gemini-2.5-flash: $0.15/1M input, $0.60/1M output (text), $3.50/1M for thinking tokens
-# gemini-2.5-flash with images: $0.15/1M input, $0.60/1M output
-# gemini-2.5-flash-image (image generation): $0.039 per image generated
+# Gemini image generation model.
+# Google docs identify gemini-3.1-flash-image-preview as Nano Banana 2.
+GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+
+# Gemini Pricing (as of May 2026) - per 1M tokens in USD unless noted
+# gemini-2.5-flash-image (Nano Banana): $0.039 per 1K image generated
+# gemini-3.1-flash-image-preview (Nano Banana 2): $0.067 per 1K image generated
 GEMINI_PRICING = {
     "gemini-2.5-flash": {
         "input_per_million": 0.15,
@@ -80,6 +83,12 @@ GEMINI_PRICING = {
         "per_image": 0.039,  # Cost per image generated
         "input_per_million": 0.15,  # For input tokens if any
         "output_per_million": 0.60,
+    },
+    "gemini-3.1-flash-image-preview": {
+        "per_image": 0.067,  # Cost per 1K image generated
+        "input_per_million": 0.50,
+        "output_per_million": 3.00,  # Text and thinking output
+        "thinking_per_million": 3.00,
     },
     "imagen-4.0-fast-generate-001": {
         "per_image": 0.020,  # Cost per image generated
@@ -326,7 +335,7 @@ async def track_token_usage(
     Track token usage and calculate costs for API calls.
 
     operation_type: 'moderation', 'image_generation', 'image_edit', 'describe', 'suggest_edits', 'suggest_prompts'
-    model: 'gemini-2.5-flash' or 'gemini-2.5-flash-image'
+    model: Gemini/Imagen model id used for the API call
     """
     try:
         # Calculate cost based on model and token counts
@@ -440,26 +449,25 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
         if not await check_rate_limit():
             raise Exception("Rate limit exceeded. Please try again in a moment.")
 
-        # Using Gemini's native image generation with chat API
-        chat = genai_client.aio.chats.create(
-            model="gemini-2.5-flash-image",
-            config=types.GenerateContentConfig(
-                response_modalities=['IMAGE'],
-            )
-        )
-
         # Send the prompt to generate the image
         instruction = f"Generate a high-quality image based on this prompt: {prompt}"
 
-        response = await chat.send_message(instruction)
+        response = await genai_client.aio.models.generate_content(
+            model=GEMINI_IMAGE_MODEL,
+            contents=[instruction],
+            config=types.GenerateContentConfig(
+                response_modalities=['Image'],
+            ),
+        )
 
         # Track token usage for image generation
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="image_generation",
-                model="gemini-2.5-flash-image",
+                model=GEMINI_IMAGE_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
-                completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
+                # Image output cost is tracked via images_generated/per_image.
+                completion_tokens=0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
                 total_tokens=getattr(response.usage_metadata, 'total_token_count', 0) or 0,
                 images_generated=1,
@@ -659,26 +667,25 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
         # Load the original image
         img = Image.open(original_image_path)
 
-        # Using Gemini's native image editing with chat API
-        chat = genai_client.aio.chats.create(
-            model="gemini-2.5-flash-image",
-            config=types.GenerateContentConfig(
-                response_modalities=['IMAGE'],
-            )
-        )
-
         # Send the image and edit instruction
         instruction = f"Edit this image according to the following instruction: {edit_prompt}"
 
-        response = await chat.send_message([instruction, img])
+        response = await genai_client.aio.models.generate_content(
+            model=GEMINI_IMAGE_MODEL,
+            contents=[instruction, img],
+            config=types.GenerateContentConfig(
+                response_modalities=['Image'],
+            ),
+        )
 
         # Track token usage for image editing
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="image_edit",
-                model="gemini-2.5-flash-image",
+                model=GEMINI_IMAGE_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
-                completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
+                # Image output cost is tracked via images_generated/per_image.
+                completion_tokens=0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
                 total_tokens=getattr(response.usage_metadata, 'total_token_count', 0) or 0,
                 images_generated=1,
