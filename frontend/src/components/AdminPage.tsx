@@ -79,6 +79,15 @@ interface TokenUsageStats {
   }>;
 }
 
+type ImageModel = "gemini" | "imagen";
+
+const IMAGE_MODEL_LABELS: Record<ImageModel, string> = {
+  gemini: "Gemini 3.1 Flash Image Preview (Nano Banana 2)",
+  imagen: "Imagen 4.0 Fast",
+};
+
+const getImageModelLabel = (imageModel?: string) => IMAGE_MODEL_LABELS[(imageModel || "gemini") as ImageModel] || IMAGE_MODEL_LABELS.gemini;
+
 export default function AdminPage() {
   const { t } = useLocale();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -95,7 +104,7 @@ export default function AdminPage() {
     imageLimit: 5,
     suggestionLimit: 50,
     bypassWatchdog: false,
-    imageModel: "gemini" as "gemini" | "imagen",
+    imageModel: "gemini" as ImageModel,
   });
   const [editingPassword, setEditingPassword] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
@@ -780,11 +789,11 @@ export default function AdminPage() {
                     <label className="block text-xs md:text-sm text-gray-400 mb-1">Image Gen Model</label>
                     <select
                       value={newPassword.imageModel}
-                      onChange={(e) => setNewPassword({ ...newPassword, imageModel: e.target.value as "gemini" | "imagen" })}
+                      onChange={(e) => setNewPassword({ ...newPassword, imageModel: e.target.value as ImageModel })}
                       className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
                     >
-                      <option value="gemini">Gemini 2.5 Flash (Nano Banana)</option>
-                      <option value="imagen">Imagen 4.0 Fast</option>
+                      <option value="gemini">{IMAGE_MODEL_LABELS.gemini}</option>
+                      <option value="imagen">{IMAGE_MODEL_LABELS.imagen}</option>
                     </select>
                   </div>
                   <div>
@@ -895,8 +904,8 @@ export default function AdminPage() {
                                   onChange={(e) => setEditForm({ ...editForm, imageModel: e.target.value })}
                                   className="px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
                                 >
-                                  <option value="gemini">Gemini</option>
-                                  <option value="imagen">Imagen</option>
+                                  <option value="gemini">{IMAGE_MODEL_LABELS.gemini}</option>
+                                  <option value="imagen">{IMAGE_MODEL_LABELS.imagen}</option>
                                 </select>
                               ) : (
                                 <span
@@ -904,7 +913,7 @@ export default function AdminPage() {
                                     (pwd.image_model || "gemini") === "imagen" ? "bg-purple-900/50 text-purple-200" : "bg-cyan-900/50 text-cyan-200"
                                   }`}
                                 >
-                                  {(pwd.image_model || "gemini") === "imagen" ? "Imagen 4.0" : "Gemini"}
+                                  {getImageModelLabel(pwd.image_model)}
                                 </span>
                               )}
                             </td>
@@ -1229,10 +1238,16 @@ export default function AdminPage() {
                 <h3 className="text-lg font-semibold text-gray-100 mb-3">Pricing Reference</h3>
                 <div className="text-sm text-gray-400 space-y-2">
                   <p>
-                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: $0.15/1M input tokens, $0.60/1M output tokens, $3.50/1M thinking tokens
+                    <span className="font-mono text-gray-300">gemini-3.1-flash-image-preview</span>: $0.067 per 1K image + $0.50/1M input tokens
                   </p>
                   <p>
-                    <span className="font-mono text-gray-300">gemini-2.5-flash-image</span>: $0.039 per image generated + token costs
+                    <span className="font-mono text-gray-300">imagen-4.0-fast-generate-001</span>: $0.020 per image
+                  </p>
+                  <p>
+                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: $0.30/1M input tokens, $2.50/1M output/thinking tokens
+                  </p>
+                  <p>
+                    <span className="font-mono text-gray-300">gemini-2.5-flash-image</span>: legacy Nano Banana usage, $0.039 per 1K image + token costs
                   </p>
                   <p className="text-xs text-gray-500 mt-2">Note: Prices are estimates based on published Gemini API pricing. Actual costs may vary.</p>
                 </div>
