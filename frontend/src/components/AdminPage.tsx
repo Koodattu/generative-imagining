@@ -79,14 +79,13 @@ interface TokenUsageStats {
   }>;
 }
 
-type ImageModel = "gemini" | "imagen";
+type ImageModel = "gemini";
 
 const IMAGE_MODEL_LABELS: Record<ImageModel, string> = {
-  gemini: "Gemini 3.1 Flash Image Preview (Nano Banana 2)",
-  imagen: "Imagen 4.0 Fast",
+  gemini: "Gemini 2.5 Flash Image (Vertex AI)",
 };
 
-const getImageModelLabel = (imageModel?: string) => IMAGE_MODEL_LABELS[(imageModel || "gemini") as ImageModel] || IMAGE_MODEL_LABELS.gemini;
+const getImageModelLabel = (_imageModel?: string) => IMAGE_MODEL_LABELS.gemini;
 
 export default function AdminPage() {
   const { t } = useLocale();
@@ -793,7 +792,6 @@ export default function AdminPage() {
                       className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
                     >
                       <option value="gemini">{IMAGE_MODEL_LABELS.gemini}</option>
-                      <option value="imagen">{IMAGE_MODEL_LABELS.imagen}</option>
                     </select>
                   </div>
                   <div>
@@ -905,14 +903,9 @@ export default function AdminPage() {
                                   className="px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
                                 >
                                   <option value="gemini">{IMAGE_MODEL_LABELS.gemini}</option>
-                                  <option value="imagen">{IMAGE_MODEL_LABELS.imagen}</option>
                                 </select>
                               ) : (
-                                <span
-                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                    (pwd.image_model || "gemini") === "imagen" ? "bg-purple-900/50 text-purple-200" : "bg-cyan-900/50 text-cyan-200"
-                                  }`}
-                                >
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-cyan-900/50 text-cyan-200">
                                   {getImageModelLabel(pwd.image_model)}
                                 </span>
                               )}
@@ -1238,18 +1231,12 @@ export default function AdminPage() {
                 <h3 className="text-lg font-semibold text-gray-100 mb-3">Pricing Reference</h3>
                 <div className="text-sm text-gray-400 space-y-2">
                   <p>
-                    <span className="font-mono text-gray-300">gemini-3.1-flash-image-preview</span>: $0.067 per 1K image + $0.50/1M input tokens
+                    <span className="font-mono text-gray-300">gemini-2.5-flash-image</span>: generated images bill through Vertex AI using the configured Google Cloud project
                   </p>
                   <p>
-                    <span className="font-mono text-gray-300">imagen-4.0-fast-generate-001</span>: $0.020 per image
+                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: used for moderation, descriptions, and suggestions
                   </p>
-                  <p>
-                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: $0.30/1M input tokens, $2.50/1M output/thinking tokens
-                  </p>
-                  <p>
-                    <span className="font-mono text-gray-300">gemini-2.5-flash-image</span>: legacy Nano Banana usage, $0.039 per 1K image + token costs
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">Note: Prices are estimates based on published Gemini API pricing. Actual costs may vary.</p>
+                  <p className="text-xs text-gray-500 mt-2">Note: Prices are estimates based on published Vertex AI pricing. Actual costs may vary.</p>
                 </div>
               </div>
             </div>

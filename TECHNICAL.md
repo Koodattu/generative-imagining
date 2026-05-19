@@ -47,7 +47,7 @@ This document provides detailed technical information about the Generative Imagi
 - **Runtime**: Python 3.9+
 - **Framework**: FastAPI 0.115.6
 - **Database**: MongoDB with Motor (async driver)
-- **AI Service**: Google Generative AI (Gemini 2.5 Flash)
+- **AI Service**: Gemini 2.5 Flash Image through Vertex AI
 - **Image Processing**: Pillow (PIL)
 - **CORS**: Middleware for cross-origin requests
 
@@ -90,7 +90,7 @@ The application is structured as a monolithic FastAPI service with the following
 1. **Configuration & Setup**
    - Environment variable loading
    - MongoDB connection setup
-   - Google Gemini AI client initialization
+   - Vertex AI Gemini client initialization
    - CORS middleware configuration
 
 2. **Models** (Pydantic schemas)
@@ -116,23 +116,21 @@ The application is structured as a monolithic FastAPI service with the following
 ```python
 fastapi==0.115.6           # Web framework
 motor==3.6.0               # Async MongoDB driver
-google-generativeai==0.8.3 # Gemini AI SDK
+google-genai                 # Google Gen AI SDK
 pillow==11.0.0            # Image processing
 python-dotenv==1.0.1      # Environment management
 ```
 
 ### AI Integration
 
-#### Gemini 2.5 Flash Configuration
+#### Vertex AI Gemini Configuration
 
 ```python
-model_config = {
-    "model": "gemini-2.0-flash-exp",
-    "temperature": 1.0,
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 8192,
-}
+genai.Client(
+    vertexai=True,
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
+)
 ```
 
 #### Image Generation Flow
@@ -144,7 +142,7 @@ User Prompt
     ↓ (if approved)
 [Rate Limit Check]
     ↓
-[Gemini API Call]
+[Vertex AI Gemini API Call]
     ↓
 [Image Data Processing]
     ↓
@@ -857,7 +855,7 @@ Passwords can have `bypass_watchdog: true` to skip moderation:
 
 ## Rate Limiting
 
-### Gemini API Limits
+### Vertex AI Gemini API Limits
 
 - **RPM (Requests Per Minute)**: 400
 - **TPM (Tokens Per Minute)**: 4,000,000
@@ -939,7 +937,9 @@ services:
       - "8000:8000"
     environment:
       - MONGO_URI=mongodb://mongodb:27017
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_GENAI_USE_VERTEXAI=true
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       - mongodb
@@ -965,8 +965,10 @@ volumes:
 Create `.env` file in root:
 
 ```bash
-# Google Gemini API
-GOOGLE_API_KEY=your_api_key_here
+# Google Vertex AI / Gemini
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your_gcp_project_id
+GOOGLE_CLOUD_LOCATION=us-central1
 
 # MongoDB
 MONGO_URI=mongodb://mongodb:27017
@@ -1022,7 +1024,8 @@ For production deployment:
 - Node.js 18+ with npm
 - MongoDB 5.0+
 - Docker & Docker Compose (optional)
-- Google Gemini API key
+- Google Cloud project with billing and Vertex AI API enabled
+- Google Cloud Application Default Credentials or a service account
 
 ### Local Setup
 
@@ -1047,7 +1050,9 @@ pip install -r requirements.txt
 
 # Create .env file
 cat > .env << EOF
-GOOGLE_API_KEY=your_api_key
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your_gcp_project_id
+GOOGLE_CLOUD_LOCATION=us-central1
 MONGO_URI=mongodb://localhost:27017
 ADMIN_PASSWORD=admin123
 IMAGES_PATH=./data/images
@@ -1254,7 +1259,7 @@ logger.error(f"Failed to generate image: {str(e)}")
 - Check `MONGO_URI` in `.env`
 - Verify network/firewall settings
 
-#### 2. Gemini API Rate Limit
+#### 2. Vertex AI Gemini API Rate Limit
 
 **Error:** `429 Too Many Requests`
 
@@ -1268,7 +1273,7 @@ logger.error(f"Failed to generate image: {str(e)}")
 
 **Possible Causes:**
 
-- Invalid API key
+- Missing or invalid Google Cloud credentials
 - Content moderation rejection
 - Network issues
 - Gemini service outage
@@ -1276,9 +1281,9 @@ logger.error(f"Failed to generate image: {str(e)}")
 **Debugging:**
 
 - Check backend logs
-- Verify API key is correct
+- Verify `GOOGLE_CLOUD_PROJECT` and Application Default Credentials are correct
 - Test with simple prompt
-- Check Gemini API status
+- Check Vertex AI / Gemini service status
 
 #### 4. CORS Errors
 

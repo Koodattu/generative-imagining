@@ -42,7 +42,8 @@ app.add_middleware(
 )
 
 # Environment variables
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GOOGLE_PROJECT_ID")
+GOOGLE_CLOUD_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 MONGO_USERNAME = os.getenv("MONGO_USERNAME", "admin")
 MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "securepassword")
 MONGO_URI = os.getenv("MONGO_URI", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@localhost:27017/?authSource=admin")
@@ -63,37 +64,33 @@ moderation_guidelines_collection = db.moderation_guidelines
 moderation_failures_collection = db.moderation_failures
 token_usage_collection = db.token_usage
 
-# Initialize Gemini AI
-genai_client = genai.Client(api_key=GOOGLE_API_KEY)
+# Initialize Gemini AI. Vertex AI is the default so usage bills through the
+# configured Google Cloud project instead of a standalone AI Studio API key.
+if not GOOGLE_CLOUD_PROJECT:
+    raise RuntimeError("Set GOOGLE_CLOUD_PROJECT to use Vertex AI billing.")
 
-# Gemini image generation model.
-# Google docs identify gemini-3.1-flash-image-preview as Nano Banana 2.
-GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+genai_client = genai.Client(
+    vertexai=True,
+    project=GOOGLE_CLOUD_PROJECT,
+    location=GOOGLE_CLOUD_LOCATION,
+)
+
+# Gemini image generation model on Vertex AI.
+GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
+GEMINI_TEXT_MODEL = "gemini-2.5-flash"
+IMAGE_MODEL_OPTIONS = ("gemini",)
 
 # Gemini Pricing (as of May 2026) - per 1M tokens in USD unless noted
-# gemini-2.5-flash-image (Nano Banana): $0.039 per 1K image generated
-# gemini-3.1-flash-image-preview (Nano Banana 2): $0.067 per 1K image generated
 GEMINI_PRICING = {
-    "gemini-2.5-flash": {
+    GEMINI_TEXT_MODEL: {
         "input_per_million": 0.15,
         "output_per_million": 0.60,
         "thinking_per_million": 3.50,
     },
-    "gemini-2.5-flash-image": {
-        "per_image": 0.039,  # Cost per image generated
+    GEMINI_IMAGE_MODEL: {
+        "per_image": 0.039,
         "input_per_million": 0.15,  # For input tokens if any
         "output_per_million": 0.60,
-    },
-    "gemini-3.1-flash-image-preview": {
-        "per_image": 0.067,  # Cost per 1K image generated
-        "input_per_million": 0.50,
-        "output_per_million": 3.00,  # Text and thinking output
-        "thinking_per_million": 3.00,
-    },
-    "imagen-4.0-fast-generate-001": {
-        "per_image": 0.020,  # Cost per image generated
-        "input_per_million": 0,
-        "output_per_million": 0,
     },
 }
 
@@ -206,7 +203,7 @@ MODERATION_SCHEMA = {
 
 # Helper functions
 async def check_rate_limit():
-    """Check if we're within the Gemini API rate limit (400 RPM)"""
+    """Check if we're within the Vertex AI Gemini API rate limit (400 RPM)"""
     async with rate_limit_lock:
         current_time = datetime.utcnow()
         one_minute_ago = current_time.timestamp() - 60
@@ -222,6 +219,24 @@ async def check_rate_limit():
         # Add current request timestamp
         request_timestamps.append(current_time.timestamp())
         return True
+
+def normalize_image_model(image_model: Optional[str]) -> str:
+    """Keep legacy password records from selecting removed image backends."""
+    return image_model if image_model in IMAGE_MODEL_OPTIONS else "gemini"
+
+def extract_inline_image_bytes(response) -> bytes:
+    """Return the first inline image produced by a Gemini multimodal response."""
+    for candidate in getattr(response, "candidates", []) or []:
+        content = getattr(candidate, "content", None)
+        for part in getattr(content, "parts", []) or []:
+            inline_data = getattr(part, "inline_data", None)
+            if inline_data is not None and getattr(inline_data, "data", None):
+                return inline_data.data
+
+    response_text = getattr(response, "text", None)
+    if response_text:
+        raise Exception(f"No image generated in response. Model returned text: {response_text}")
+    raise Exception("No image generated in response")
 
 async def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify admin authentication"""
@@ -339,7 +354,7 @@ async def track_token_usage(
     """
     try:
         # Calculate cost based on model and token counts
-        pricing = GEMINI_PRICING.get(model, GEMINI_PRICING["gemini-2.5-flash"])
+        pricing = GEMINI_PRICING.get(model, GEMINI_PRICING[GEMINI_TEXT_MODEL])
 
         cost = 0.0
         if images_generated > 0:
@@ -402,7 +417,7 @@ Return a JSON object with:
 - rejection_reason: if is_appropriate is false, provide a brief explanation (one sentence) why it was rejected. If is_appropriate is true, set this to an empty string."""
 
         response = await genai_client.aio.models.generate_content(
-            model='gemini-2.5-flash',
+            model=GEMINI_TEXT_MODEL,
             contents=moderation_prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -415,7 +430,7 @@ Return a JSON object with:
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="moderation",
-                model="gemini-2.5-flash",
+                model=GEMINI_TEXT_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
                 completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
@@ -456,7 +471,7 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
             model=GEMINI_IMAGE_MODEL,
             contents=[instruction],
             config=types.GenerateContentConfig(
-                response_modalities=['Image'],
+                response_modalities=[types.Modality.TEXT, types.Modality.IMAGE],
             ),
         )
 
@@ -474,53 +489,10 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
                 password=password
             )
 
-        print(f"Gemini response: {response}")
-
-        # Extract the image from response parts
-        for part in response.candidates[0].content.parts:
-            if part.inline_data is not None:
-                # Return the image bytes directly
-                return part.inline_data.data
-
-        # If no image found in response, raise error
-        raise Exception("No image generated in response")
+        return extract_inline_image_bytes(response)
 
     except Exception as e:
         print(f"Error generating image: {e}")
-        raise Exception(f"Failed to generate image: {str(e)}")
-
-async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes:
-    """Generate image using Imagen 4.0 Fast"""
-    try:
-        # Check rate limit before making API call
-        if not await check_rate_limit():
-            raise Exception("Rate limit exceeded. Please try again in a moment.")
-
-        response = await genai_client.aio.models.generate_images(
-            model='imagen-4.0-fast-generate-001',
-            prompt=prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                aspect_ratio="1:1"
-            ),
-        )
-
-        # Track token usage for imagen generation
-        await track_token_usage(
-            operation_type="image_generation",
-            model="imagen-4.0-fast-generate-001",
-            images_generated=1,
-            password=password
-        )
-
-        if response.generated_images and len(response.generated_images) > 0:
-            image = response.generated_images[0].image
-            return image.image_bytes
-
-        raise Exception("No image generated in response")
-
-    except Exception as e:
-        print(f"Error generating image with Imagen: {e}")
         raise Exception(f"Failed to generate image: {str(e)}")
 
 async def describe_image_with_gemini(image_path: str, password: str = None) -> str:
@@ -535,7 +507,7 @@ async def describe_image_with_gemini(image_path: str, password: str = None) -> s
 
         # Generate description using Gemini
         response = await genai_client.aio.models.generate_content(
-            model='gemini-2.5-flash',
+            model=GEMINI_TEXT_MODEL,
             contents=[
                 img,
                 "Describe this image in 5-7 words maximum. Focus on the main physical subjects and objects. Be very brief and simple."
@@ -551,7 +523,7 @@ async def describe_image_with_gemini(image_path: str, password: str = None) -> s
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="describe",
-                model="gemini-2.5-flash",
+                model=GEMINI_TEXT_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
                 completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
@@ -622,7 +594,7 @@ REMEMBER: These are just examples, try to be creative and original with your sug
 Return as a JSON object with a 'suggestions' array containing exactly 3 strings."""
 
         response = await genai_client.aio.models.generate_content(
-            model='gemini-2.5-flash',
+            model=GEMINI_TEXT_MODEL,
             contents=[
                 img,
                 query
@@ -638,7 +610,7 @@ Return as a JSON object with a 'suggestions' array containing exactly 3 strings.
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="suggest_edits",
-                model="gemini-2.5-flash",
+                model=GEMINI_TEXT_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
                 completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
@@ -672,9 +644,9 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
 
         response = await genai_client.aio.models.generate_content(
             model=GEMINI_IMAGE_MODEL,
-            contents=[instruction, img],
+            contents=[img, instruction],
             config=types.GenerateContentConfig(
-                response_modalities=['Image'],
+                response_modalities=[types.Modality.TEXT, types.Modality.IMAGE],
             ),
         )
 
@@ -692,14 +664,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
                 password=password
             )
 
-        # Extract the edited image from response parts
-        for part in response.candidates[0].content.parts:
-            if part.inline_data is not None:
-                # Return the edited image bytes
-                return part.inline_data.data
-
-        # If no image found in response, raise error
-        raise Exception("No edited image in response")
+        return extract_inline_image_bytes(response)
 
     except Exception as e:
         print(f"Error editing image: {e}")
@@ -755,22 +720,14 @@ async def generate_image(data: ImageGenerate):
         if not is_valid:
             raise HTTPException(status_code=403, detail="Invalid or expired password")
 
-        # Determine which image generation model to use
-        image_model = "gemini"  # default
-        if password_doc and password_doc.get("image_model"):
-            image_model = password_doc["image_model"]
-
         # Moderate content before generation (skip if bypass_watchdog is enabled)
         if not bypass_watchdog:
             is_appropriate = await moderate_content(data.prompt, is_edit=False, password=data.password)
             if not is_appropriate:
                 raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
-        # Generate image using the configured model
-        if image_model == "imagen":
-            image_data = await generate_image_with_imagen(data.prompt, password=data.password)
-        else:
-            image_data = await generate_image_with_gemini(data.prompt, password=data.password)
+        # Generate through Gemini 2.5 Flash Image on Vertex AI.
+        image_data = await generate_image_with_gemini(data.prompt, password=data.password)
 
         # Save image
         image_id = str(uuid.uuid4())
@@ -1016,7 +973,7 @@ FORMAT:
 """
 
         response = await genai_client.aio.models.generate_content(
-            model='gemini-2.5-flash',
+            model=GEMINI_TEXT_MODEL,
             contents=query,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -1029,7 +986,7 @@ FORMAT:
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="suggest_prompts",
-                model="gemini-2.5-flash",
+                model=GEMINI_TEXT_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
                 completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
@@ -1178,7 +1135,7 @@ async def create_password(data: PasswordCreate, credentials: HTTPAuthorizationCr
             "image_limit": data.image_limit,
             "suggestion_limit": data.suggestion_limit,
             "bypass_watchdog": data.bypass_watchdog,
-            "image_model": data.image_model if data.image_model in ("gemini", "imagen") else "gemini",
+            "image_model": normalize_image_model(data.image_model),
             "created_at": datetime.utcnow(),
             "expires_at": expires_at
         }
@@ -1217,7 +1174,7 @@ async def get_passwords(credentials: HTTPAuthorizationCredentials = Depends(veri
                 "expires_at": pwd["expires_at"],
                 "is_expired": pwd["expires_at"] < datetime.utcnow(),
                 "bypass_watchdog": pwd.get("bypass_watchdog", False),
-                "image_model": pwd.get("image_model", "gemini")
+                "image_model": normalize_image_model(pwd.get("image_model"))
             })
 
         return {"passwords": passwords}
@@ -1261,8 +1218,8 @@ async def update_password(password: str, data: PasswordUpdate, credentials: HTTP
             update_fields["image_limit"] = data.image_limit
         if data.suggestion_limit is not None:
             update_fields["suggestion_limit"] = data.suggestion_limit
-        if data.image_model is not None and data.image_model in ("gemini", "imagen"):
-            update_fields["image_model"] = data.image_model
+        if data.image_model is not None:
+            update_fields["image_model"] = normalize_image_model(data.image_model)
         if data.valid_hours is not None:
             from datetime import timedelta
             update_fields["valid_hours"] = data.valid_hours
@@ -1286,7 +1243,7 @@ async def update_password(password: str, data: PasswordUpdate, credentials: HTTP
             "valid_hours": updated["valid_hours"],
             "expires_at": updated["expires_at"],
             "bypass_watchdog": updated.get("bypass_watchdog", False),
-            "image_model": updated.get("image_model", "gemini")
+            "image_model": normalize_image_model(updated.get("image_model"))
         }
     except HTTPException:
         raise

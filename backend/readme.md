@@ -5,7 +5,7 @@ FastAPI backend service for AI-powered image generation and management.
 ## Features
 
 - **User Management**: IP + GUID based user identification
-- **Image Generation**: Google Gemini 2.5 Flash integration
+- **Image Generation**: Gemini 2.5 Flash Image on Vertex AI
 - **Image Editing**: AI-powered image editing suggestions
 - **Gallery Management**: Personal image galleries
 - **Admin Dashboard**: Administrative access to all images
@@ -43,11 +43,15 @@ FastAPI backend service for AI-powered image generation and management.
 Copy `.env.example` to `.env` and set your values:
 
 ```bash
-GOOGLE_API_KEY=your_gemini_api_key_here
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your_gcp_project_id
+GOOGLE_CLOUD_LOCATION=us-central1
 MONGO_URI=mongodb://mongo:27017
 ADMIN_PASSWORD=admin123
 IMAGES_PATH=/app/data/images
 ```
+
+When running through Docker Compose, place ADC or service account credentials at `./secrets/application_default_credentials.json`; the backend mounts that file at `/app/secrets/application_default_credentials.json`.
 
 ## Local Development
 

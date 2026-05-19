@@ -21,12 +21,16 @@ services:
     container_name: generative-imagining-backend
     restart: unless-stopped
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_GENAI_USE_VERTEXAI=true
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/application_default_credentials.json
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - IMAGES_PATH=/app/data/images
     volumes:
       - ./data/images:/app/data/images
+      - ./secrets:/app/secrets:ro
     ports:
       - "3338:8000"
     depends_on:

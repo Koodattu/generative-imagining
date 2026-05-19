@@ -33,7 +33,7 @@ graph LR
 ```
 
 1. **Enter a Prompt** - Describe the image you want to create
-2. **AI Generation** - Powered by Google Gemini 2.5 Flash
+2. **AI Generation** - Powered by Gemini 2.5 Flash Image on Vertex AI
 3. **View & Manage** - Browse your gallery, share, or edit
 4. **Keep Creating** - Unlimited creative possibilities
 
@@ -48,7 +48,8 @@ cd generative-imagining
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env and add your Google API key
+# Edit .env and add your Google Cloud project for Vertex AI
+# Put ADC/service account JSON at ./secrets/application_default_credentials.json
 
 # Start the application
 docker-compose up -d
@@ -65,7 +66,8 @@ docker-compose up -d
 - Python 3.9+
 - Node.js 18+
 - MongoDB
-- Google Gemini API key
+- Google Cloud project with billing and Vertex AI API enabled
+- Google Cloud Application Default Credentials or a service account
 
 **Backend:**
 
@@ -90,8 +92,10 @@ See [SETUP.md](SETUP.md) for detailed installation instructions.
 Create a `.env` file in the root directory:
 
 ```env
-# Google Gemini API
-GOOGLE_API_KEY=your_api_key_here
+# Google Vertex AI / Gemini
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your_gcp_project_id
+GOOGLE_CLOUD_LOCATION=us-central1
 
 # MongoDB
 MONGO_URI=mongodb://localhost:27017
@@ -114,7 +118,7 @@ Access the admin panel at `/admin` with your configured password.
 
 ## Technology Stack
 
-- **AI**: Google Gemini 2.5 Flash
+- **AI**: Gemini 2.5 Flash Image on Vertex AI
 - **Backend**: Python FastAPI + MongoDB
 - **Frontend**: Next.js + React + TypeScript
 - **Deployment**: Docker & Docker Compose
