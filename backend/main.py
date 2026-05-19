@@ -48,6 +48,8 @@ MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "securepassword")
 MONGO_URI = os.getenv("MONGO_URI", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@localhost:27017/?authSource=admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 IMAGES_PATH = os.getenv("IMAGES_PATH", "./data/images")
+GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+IMAGEN_IMAGE_MODEL = os.getenv("IMAGEN_IMAGE_MODEL", "imagen-4.0-fast-generate-001")
 
 # Ensure images directory exists
 Path(IMAGES_PATH).mkdir(parents=True, exist_ok=True)
@@ -65,6 +67,7 @@ token_usage_collection = db.token_usage
 
 # Initialize Gemini AI
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
+print(f"Gemini image model: {GEMINI_IMAGE_MODEL}")
 
 # Gemini Pricing (as of January 2024) - per 1M tokens in USD
 # gemini-2.5-flash: $0.15/1M input, $0.60/1M output (text), $3.50/1M for thinking tokens
@@ -76,12 +79,12 @@ GEMINI_PRICING = {
         "output_per_million": 0.60,
         "thinking_per_million": 3.50,
     },
-    "gemini-2.5-flash-image": {
+    GEMINI_IMAGE_MODEL: {
         "per_image": 0.039,  # Cost per image generated
         "input_per_million": 0.15,  # For input tokens if any
         "output_per_million": 0.60,
     },
-    "imagen-4.0-fast-generate-001": {
+    IMAGEN_IMAGE_MODEL: {
         "per_image": 0.020,  # Cost per image generated
         "input_per_million": 0,
         "output_per_million": 0,
@@ -442,7 +445,7 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
 
         # Using Gemini's native image generation with chat API
         chat = genai_client.aio.chats.create(
-            model="gemini-2.5-flash-image",
+            model=GEMINI_IMAGE_MODEL,
             config=types.GenerateContentConfig(
                 response_modalities=['IMAGE'],
             )
@@ -457,7 +460,7 @@ async def generate_image_with_gemini(prompt: str, password: str = None) -> bytes
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="image_generation",
-                model="gemini-2.5-flash-image",
+                model=GEMINI_IMAGE_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
                 completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,
@@ -489,7 +492,7 @@ async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes
             raise Exception("Rate limit exceeded. Please try again in a moment.")
 
         response = await genai_client.aio.models.generate_images(
-            model='imagen-4.0-fast-generate-001',
+            model=IMAGEN_IMAGE_MODEL,
             prompt=prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,
@@ -500,7 +503,7 @@ async def generate_image_with_imagen(prompt: str, password: str = None) -> bytes
         # Track token usage for imagen generation
         await track_token_usage(
             operation_type="image_generation",
-            model="imagen-4.0-fast-generate-001",
+            model=IMAGEN_IMAGE_MODEL,
             images_generated=1,
             password=password
         )
@@ -661,7 +664,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
 
         # Using Gemini's native image editing with chat API
         chat = genai_client.aio.chats.create(
-            model="gemini-2.5-flash-image",
+            model=GEMINI_IMAGE_MODEL,
             config=types.GenerateContentConfig(
                 response_modalities=['IMAGE'],
             )
@@ -676,7 +679,7 @@ async def edit_image_with_gemini(original_image_path: str, edit_prompt: str, pas
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             await track_token_usage(
                 operation_type="image_edit",
-                model="gemini-2.5-flash-image",
+                model=GEMINI_IMAGE_MODEL,
                 prompt_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
                 completion_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
                 thinking_tokens=getattr(response.usage_metadata, 'thoughts_token_count', 0) or 0,

@@ -26,6 +26,8 @@
 
    ```
    GOOGLE_API_KEY=your_actual_gemini_api_key_here
+   GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+   IMAGEN_IMAGE_MODEL=imagen-4.0-fast-generate-001
    ADMIN_PASSWORD=your_admin_password
    ```
 

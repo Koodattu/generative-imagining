@@ -22,6 +22,8 @@ services:
     restart: unless-stopped
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
+      - IMAGEN_IMAGE_MODEL=${IMAGEN_IMAGE_MODEL:-imagen-4.0-fast-generate-001}
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - IMAGES_PATH=/app/data/images

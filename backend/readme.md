@@ -44,6 +44,8 @@ Copy `.env.example` to `.env` and set your values:
 
 ```bash
 GOOGLE_API_KEY=your_gemini_api_key_here
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+IMAGEN_IMAGE_MODEL=imagen-4.0-fast-generate-001
 MONGO_URI=mongodb://mongo:27017
 ADMIN_PASSWORD=admin123
 IMAGES_PATH=/app/data/images
