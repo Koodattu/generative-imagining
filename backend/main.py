@@ -49,6 +49,7 @@ MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "securepassword")
 MONGO_URI = os.getenv("MONGO_URI", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@localhost:27017/?authSource=admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 IMAGES_PATH = os.getenv("IMAGES_PATH", "./data/images")
+GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
 
 # Ensure images directory exists
 Path(IMAGES_PATH).mkdir(parents=True, exist_ok=True)
@@ -75,8 +76,7 @@ genai_client = genai.Client(
     location=GOOGLE_CLOUD_LOCATION,
 )
 
-# Gemini image generation model on Vertex AI.
-GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
+# Gemini models on Vertex AI.
 GEMINI_TEXT_MODEL = "gemini-2.5-flash"
 IMAGE_MODEL_OPTIONS = ("gemini",)
 

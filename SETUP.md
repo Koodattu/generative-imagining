@@ -29,6 +29,7 @@
    GOOGLE_GENAI_USE_VERTEXAI=true
    GOOGLE_CLOUD_PROJECT=your_gcp_project_id
    GOOGLE_CLOUD_LOCATION=us-central1
+   GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
    ADMIN_PASSWORD=your_admin_password
    ```
 
