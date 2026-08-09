@@ -54,13 +54,13 @@
 4. **Start all services**
 
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 5. **Access the application**
-   - **Frontend**: http://localhost:3000
-   - **Backend API**: http://localhost:8000
-   - **API Documentation**: http://localhost:8000/docs
+   - **Frontend**: http://localhost:3337
+   - **Backend API**: http://localhost:3338
+   - **API Documentation**: http://localhost:3338/docs
    - **MongoDB**: localhost:27017
 
 ### Default Admin Credentials
@@ -88,15 +88,15 @@
 
 ```bash
 cd backend
-pip install -r requirements.txt
+python -m pip install --require-hashes -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend Development
 
 ```bash
-cd frontend/imaging-web
-npm install
+cd frontend
+npm ci
 npm run dev
 ```
 
@@ -109,7 +109,7 @@ npm run dev
 ## 📝 Architecture
 
 - **Backend**: Python FastAPI with Gemini on Vertex AI integration
-- **Frontend**: Next.js 15 with React 19 and Tailwind CSS
+- **Frontend**: Next.js 16 with React 19 and Tailwind CSS
 - **Database**: MongoDB for user and image metadata
 - **Storage**: Local filesystem for image files
 - **Authentication**: IP + GUID based user identification, simple admin auth

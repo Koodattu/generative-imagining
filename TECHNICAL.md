@@ -44,9 +44,9 @@ This document provides detailed technical information about the Generative Imagi
 
 #### Backend
 
-- **Runtime**: Python 3.9+
-- **Framework**: FastAPI 0.115.6
-- **Database**: MongoDB with Motor (async driver)
+- **Runtime**: Python 3.13+
+- **Framework**: FastAPI 0.141.1
+- **Database**: MongoDB with PyMongo's async client
 - **AI Service**: Gemini 2.5 Flash Image through Vertex AI
 - **Image Processing**: Pillow (PIL)
 - **CORS**: Middleware for cross-origin requests
@@ -114,11 +114,11 @@ The application is structured as a monolithic FastAPI service with the following
 ### Key Technologies & Libraries
 
 ```python
-fastapi==0.115.6           # Web framework
-motor==3.6.0               # Async MongoDB driver
-google-genai                 # Google Gen AI SDK
-pillow==11.0.0            # Image processing
-python-dotenv==1.0.1      # Environment management
+fastapi==0.141.1          # Web framework
+pymongo==4.17.0           # MongoDB async client
+google-genai==1.75.0      # Google Gen AI SDK
+pillow==12.3.0            # Image processing
+python-dotenv==1.2.2      # Environment management
 ```
 
 ### AI Integration
@@ -900,65 +900,25 @@ Tracked in `password_usage` collection per GUID+password pair.
 **Services:**
 
 1. **MongoDB**
-   - Image: `mongo:5.0`
+   - Image: `mongo:7.0.39`
    - Port: `27017`
-   - Volume: `mongodb_data`
+   - Volume: `mongo_data`
 
 2. **Backend**
    - Build: `./backend`
-   - Port: `8000`
+   - Published port: `3338`
    - Depends on: MongoDB
    - Environment: `.env` file
 
 3. **Frontend**
    - Build: `./frontend`
-   - Port: `3000`
+   - Published port: `3337`
    - Depends on: Backend
-   - Environment: `NEXT_PUBLIC_API_URL`
+   - Same-origin `/api` proxy to the backend service
 
-**docker-compose.yml:**
-
-```yaml
-version: "3.8"
-
-services:
-  mongodb:
-    image: mongo:5.0
-    container_name: generative-imagining-db
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-
-  backend:
-    build: ./backend
-    container_name: generative-imagining-backend
-    ports:
-      - "8000:8000"
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - GOOGLE_GENAI_USE_VERTEXAI=true
-      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
-      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-    depends_on:
-      - mongodb
-    volumes:
-      - ./data/images:/app/data/images
-
-  frontend:
-    build: ./frontend
-    container_name: generative-imagining-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-    depends_on:
-      - backend
-
-volumes:
-  mongodb_data:
-```
+The repository's [`docker-compose.yml`](docker-compose.yml) is the canonical
+configuration. It includes service health checks, authenticated MongoDB,
+same-origin API proxying, and persistent image and database storage.
 
 ### Environment Variables
 
@@ -1020,9 +980,9 @@ For production deployment:
 
 ### Prerequisites
 
-- Python 3.9+ with pip
-- Node.js 18+ with npm
-- MongoDB 5.0+
+- Python 3.13+ with pip
+- Node.js 24 LTS with npm
+- MongoDB 7.0+
 - Docker & Docker Compose (optional)
 - Google Cloud project with billing and Vertex AI API enabled
 - Google Cloud Application Default Credentials or a service account
@@ -1046,7 +1006,7 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install --require-hashes -r requirements.txt
 
 # Create .env file
 cat > .env << EOF
@@ -1073,7 +1033,7 @@ Backend runs at `http://localhost:8000`
 cd frontend
 
 # Install dependencies
-npm install
+npm ci
 
 # Create .env.local
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
@@ -1089,7 +1049,7 @@ Frontend runs at `http://localhost:3000`
 **Option A: Docker**
 
 ```bash
-docker run -d -p 27017:27017 --name mongodb mongo:5.0
+docker run -d -p 27017:27017 --name mongodb mongo:7.0.39
 ```
 
 **Option B: Local Install**

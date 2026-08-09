@@ -7,7 +7,7 @@ import os
 import uuid
 from datetime import datetime
 from typing import List, Optional
-import motor.motor_asyncio
+from pymongo import AsyncMongoClient
 from pydantic import BaseModel
 import google.genai as genai
 from google.genai import types
@@ -54,7 +54,7 @@ IMAGES_PATH = os.getenv("IMAGES_PATH", "./data/images")
 Path(IMAGES_PATH).mkdir(parents=True, exist_ok=True)
 
 # MongoDB setup
-mongo_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+mongo_client = AsyncMongoClient(MONGO_URI)
 db = mongo_client.generative_imagining
 users_collection = db.users
 images_collection = db.images
@@ -1354,7 +1354,7 @@ async def get_token_usage(credentials: HTTPAuthorizationCredentials = Depends(ve
             }
         ]
 
-        total_stats_cursor = token_usage_collection.aggregate(pipeline_total)
+        total_stats_cursor = await token_usage_collection.aggregate(pipeline_total)
         total_stats_list = await total_stats_cursor.to_list(length=1)
         total_stats = total_stats_list[0] if total_stats_list else {
             "total_prompt_tokens": 0,
@@ -1383,7 +1383,7 @@ async def get_token_usage(credentials: HTTPAuthorizationCredentials = Depends(ve
             {"$sort": {"cost_usd": -1}}
         ]
 
-        by_operation_cursor = token_usage_collection.aggregate(pipeline_by_operation)
+        by_operation_cursor = await token_usage_collection.aggregate(pipeline_by_operation)
         by_operation = await by_operation_cursor.to_list(length=100)
 
         # Get stats by password
@@ -1406,7 +1406,7 @@ async def get_token_usage(credentials: HTTPAuthorizationCredentials = Depends(ve
             {"$sort": {"cost_usd": -1}}
         ]
 
-        by_password_cursor = token_usage_collection.aggregate(pipeline_by_password)
+        by_password_cursor = await token_usage_collection.aggregate(pipeline_by_password)
         by_password = await by_password_cursor.to_list(length=100)
 
         # Get stats by model
@@ -1426,7 +1426,7 @@ async def get_token_usage(credentials: HTTPAuthorizationCredentials = Depends(ve
             {"$sort": {"cost_usd": -1}}
         ]
 
-        by_model_cursor = token_usage_collection.aggregate(pipeline_by_model)
+        by_model_cursor = await token_usage_collection.aggregate(pipeline_by_model)
         by_model = await by_model_cursor.to_list(length=100)
 
         return {

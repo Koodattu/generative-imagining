@@ -1,22 +1,38 @@
-FROM node:24.9-alpine
+# syntax=docker/dockerfile:1.7
 
-# Set working directory
+FROM node:24.19.0-alpine3.24 AS dependencies
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
 
-# Install dependencies
-RUN npm install
+FROM node:24.19.0-alpine3.24 AS builder
 
-# Copy application code
+ENV NEXT_TELEMETRY_DISABLED=1
+
+WORKDIR /app
+
+COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Expose port
+FROM node:24.19.0-alpine3.24 AS runner
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
+
+WORKDIR /app
+
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+
+USER node
+
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

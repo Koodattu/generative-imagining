@@ -1,0 +1,14 @@
+.env*
+__pycache__/
+*.py[cod]
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+data/
+*.md
+Dockerfile
+.dockerignore
+

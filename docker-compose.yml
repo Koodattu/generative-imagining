@@ -1,7 +1,6 @@
 services:
-  # MongoDB Database
   mongo:
-    image: mongo:7
+    image: mongo:7.0.39
     container_name: generative-imagining-db
     restart: unless-stopped
     environment:
@@ -12,12 +11,18 @@ services:
       - mongo_data:/data/db
     ports:
       - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - app-network
 
-  # FastAPI Backend
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     container_name: generative-imagining-backend
     restart: unless-stopped
     environment:
@@ -33,22 +38,28 @@ services:
       - ./secrets:/app/secrets:ro
     ports:
       - "3338:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     networks:
       - app-network
 
-  # Next.js Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
     container_name: generative-imagining-frontend
     restart: unless-stopped
-    environment:
-      - NEXT_PUBLIC_API_URL=/api
     ports:
       - "3337:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - app-network
 

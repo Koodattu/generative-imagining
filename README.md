@@ -51,21 +51,21 @@ cp .env.example .env
 # Edit .env and add your Google Cloud project for Vertex AI
 # Put ADC/service account JSON at ./secrets/application_default_credentials.json
 
-# Start the application
-docker-compose up -d
+# Build and start the application
+docker compose up -d --build
 
 # Access the application
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8000
+# Frontend: http://localhost:3337
+# Backend: http://localhost:3338
 ```
 
 ### Manual Setup
 
 **Prerequisites:**
 
-- Python 3.9+
-- Node.js 18+
-- MongoDB
+- Python 3.13+
+- Node.js 24 LTS
+- MongoDB 7.0+
 - Google Cloud project with billing and Vertex AI API enabled
 - Google Cloud Application Default Credentials or a service account
 
@@ -73,7 +73,7 @@ docker-compose up -d
 
 ```bash
 cd backend
-pip install -r requirements.txt
+python -m pip install --require-hashes -r requirements.txt
 python main.py
 ```
 
@@ -81,7 +81,7 @@ python main.py
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
