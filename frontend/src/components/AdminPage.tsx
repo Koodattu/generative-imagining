@@ -81,14 +81,9 @@ interface TokenUsageStats {
 
 type ImageModel = "gemini";
 
-const IMAGE_MODEL_LABELS: Record<ImageModel, string> = {
-  gemini: "Gemini 2.5 Flash Image (Vertex AI)",
-};
-
-const getImageModelLabel = (_imageModel?: string) => IMAGE_MODEL_LABELS.gemini;
-
 export default function AdminPage() {
   const { t } = useLocale();
+  const imageModelLabel = t("admin.imageModel.gemini");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -791,7 +786,7 @@ export default function AdminPage() {
                       onChange={(e) => setNewPassword({ ...newPassword, imageModel: e.target.value as ImageModel })}
                       className="w-full px-3 py-2 bg-[#1a1a1a] text-gray-100 border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-sm md:text-base"
                     >
-                      <option value="gemini">{IMAGE_MODEL_LABELS.gemini}</option>
+                      <option value="gemini">{imageModelLabel}</option>
                     </select>
                   </div>
                   <div>
@@ -902,11 +897,11 @@ export default function AdminPage() {
                                   onChange={(e) => setEditForm({ ...editForm, imageModel: e.target.value })}
                                   className="px-1 py-0.5 bg-[#1a1a1a] text-gray-100 border border-gray-600 rounded text-xs"
                                 >
-                                  <option value="gemini">{IMAGE_MODEL_LABELS.gemini}</option>
+                                  <option value="gemini">{imageModelLabel}</option>
                                 </select>
                               ) : (
                                 <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-cyan-900/50 text-cyan-200">
-                                  {getImageModelLabel(pwd.image_model)}
+                                  {imageModelLabel}
                                 </span>
                               )}
                             </td>
@@ -1228,15 +1223,18 @@ export default function AdminPage() {
 
               {/* Pricing Info */}
               <div className="bg-[#2a2a2a] rounded-lg p-4 md:p-6">
-                <h3 className="text-lg font-semibold text-gray-100 mb-3">Pricing Reference</h3>
+                <h3 className="text-lg font-semibold text-gray-100 mb-3">{t("admin.pricing.title")}</h3>
                 <div className="text-sm text-gray-400 space-y-2">
                   <p>
-                    <span className="font-mono text-gray-300">gemini-2.5-flash-image</span>: generated images bill through Vertex AI using the configured Google Cloud project
+                    <span className="font-mono text-gray-300">gemini-3.1-flash-image</span>: {t("admin.pricing.imageModel")}
                   </p>
                   <p>
-                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: used for moderation, descriptions, and suggestions
+                    <span className="font-mono text-gray-300">gemini-3.1-flash-lite-image</span>: {t("admin.pricing.imageModelLite")}
                   </p>
-                  <p className="text-xs text-gray-500 mt-2">Note: Prices are estimates based on published Vertex AI pricing. Actual costs may vary.</p>
+                  <p>
+                    <span className="font-mono text-gray-300">gemini-2.5-flash</span>: {t("admin.pricing.textModel")}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">{t("admin.pricing.note")}</p>
                 </div>
               </div>
             </div>

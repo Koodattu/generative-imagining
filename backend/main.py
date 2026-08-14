@@ -42,14 +42,13 @@ app.add_middleware(
 )
 
 # Environment variables
-GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GOOGLE_PROJECT_ID")
-GOOGLE_CLOUD_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 MONGO_USERNAME = os.getenv("MONGO_USERNAME", "admin")
 MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "securepassword")
 MONGO_URI = os.getenv("MONGO_URI", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@localhost:27017/?authSource=admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 IMAGES_PATH = os.getenv("IMAGES_PATH", "./data/images")
-GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")
 
 # Ensure images directory exists
 Path(IMAGES_PATH).mkdir(parents=True, exist_ok=True)
@@ -65,32 +64,39 @@ moderation_guidelines_collection = db.moderation_guidelines
 moderation_failures_collection = db.moderation_failures
 token_usage_collection = db.token_usage
 
-# Initialize Gemini AI. Vertex AI is the default so usage bills through the
-# configured Google Cloud project instead of a standalone AI Studio API key.
-if not GOOGLE_CLOUD_PROJECT:
-    raise RuntimeError("Set GOOGLE_CLOUD_PROJECT to use Vertex AI billing.")
+# Initialize the Gemini Developer API client.
+if not GEMINI_API_KEY:
+    raise RuntimeError("Set GEMINI_API_KEY to use the Gemini API.")
 
-genai_client = genai.Client(
-    vertexai=True,
-    project=GOOGLE_CLOUD_PROJECT,
-    location=GOOGLE_CLOUD_LOCATION,
-)
+genai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Gemini models on Vertex AI.
+# Gemini models.
 GEMINI_TEXT_MODEL = "gemini-2.5-flash"
 IMAGE_MODEL_OPTIONS = ("gemini",)
 
-# Gemini Pricing (as of May 2026) - per 1M tokens in USD unless noted
+# Gemini Developer API standard pricing (as of July 2026), in USD.
 GEMINI_PRICING = {
     GEMINI_TEXT_MODEL: {
-        "input_per_million": 0.15,
-        "output_per_million": 0.60,
-        "thinking_per_million": 3.50,
+        "input_per_million": 0.30,
+        "output_per_million": 2.50,
+        "thinking_per_million": 2.50,
     },
-    GEMINI_IMAGE_MODEL: {
+    "gemini-2.5-flash-image": {
         "per_image": 0.039,
-        "input_per_million": 0.15,  # For input tokens if any
-        "output_per_million": 0.60,
+        "input_per_million": 0.30,
+        "output_per_million": 2.50,
+    },
+    "gemini-3.1-flash-image": {
+        "per_image": 0.067,
+        "input_per_million": 0.50,
+        "output_per_million": 3.00,
+        "thinking_per_million": 3.00,
+    },
+    "gemini-3.1-flash-lite-image": {
+        "per_image": 0.0336,
+        "input_per_million": 0.25,
+        "output_per_million": 1.50,
+        "thinking_per_million": 1.50,
     },
 }
 
@@ -203,7 +209,7 @@ MODERATION_SCHEMA = {
 
 # Helper functions
 async def check_rate_limit():
-    """Check if we're within the Vertex AI Gemini API rate limit (400 RPM)"""
+    """Check if we're within the application's Gemini request limit (400 RPM)."""
     async with rate_limit_lock:
         current_time = datetime.utcnow()
         one_minute_ago = current_time.timestamp() - 60
@@ -726,7 +732,7 @@ async def generate_image(data: ImageGenerate):
             if not is_appropriate:
                 raise HTTPException(status_code=500, detail="Failed to generate image. Please try again with a different prompt.")
 
-        # Generate through Gemini 2.5 Flash Image on Vertex AI.
+        # Generate through the configured Gemini image model.
         image_data = await generate_image_with_gemini(data.prompt, password=data.password)
 
         # Save image

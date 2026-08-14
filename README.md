@@ -33,7 +33,7 @@ graph LR
 ```
 
 1. **Enter a Prompt** - Describe the image you want to create
-2. **AI Generation** - Powered by Gemini 2.5 Flash Image on Vertex AI
+2. **AI Generation** - Powered by Gemini 3.1 Flash Image (Nano Banana 2)
 3. **View & Manage** - Browse your gallery, share, or edit
 4. **Keep Creating** - Unlimited creative possibilities
 
@@ -48,8 +48,7 @@ cd generative-imagining
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env and add your Google Cloud project for Vertex AI
-# Put ADC/service account JSON at ./secrets/application_default_credentials.json
+# Edit .env and add your Gemini API key and unique passwords
 
 # Build and start the application
 docker compose up -d --build
@@ -66,8 +65,7 @@ docker compose up -d --build
 - Python 3.13+
 - Node.js 24 LTS
 - MongoDB 7.0+
-- Google Cloud project with billing and Vertex AI API enabled
-- Google Cloud Application Default Credentials or a service account
+- Gemini API key with billing enabled
 
 **Backend:**
 
@@ -92,17 +90,20 @@ See [SETUP.md](SETUP.md) for detailed installation instructions.
 Create a `.env` file in the root directory:
 
 ```env
-# Google Vertex AI / Gemini
-GOOGLE_GENAI_USE_VERTEXAI=true
-GOOGLE_CLOUD_PROJECT=your_gcp_project_id
-GOOGLE_CLOUD_LOCATION=us-central1
+# Gemini Developer API
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_IMAGE_MODEL=gemini-3.1-flash-image
 
-# MongoDB
-MONGO_URI=mongodb://localhost:27017
+# MongoDB used by Docker Compose
+MONGO_USERNAME=generative_imagining
+MONGO_PASSWORD=your_secure_database_password
 
 # Admin Access
 ADMIN_PASSWORD=your_secure_password
 ```
+
+`gemini-3.1-flash-image` is the default. For lower latency and lower-cost 1K
+images, set `GEMINI_IMAGE_MODEL=gemini-3.1-flash-lite-image` instead.
 
 ## For Educators & Administrators
 
@@ -118,7 +119,7 @@ Access the admin panel at `/admin` with your configured password.
 
 ## Technology Stack
 
-- **AI**: Gemini 2.5 Flash Image on Vertex AI
+- **AI**: Gemini 3.1 Flash Image through the Gemini Developer API
 - **Backend**: Python FastAPI + MongoDB
 - **Frontend**: Next.js + React + TypeScript
 - **Deployment**: Docker & Docker Compose

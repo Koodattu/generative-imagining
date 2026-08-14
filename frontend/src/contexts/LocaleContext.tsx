@@ -146,6 +146,12 @@ const translations: Record<Locale, Record<string, string>> = {
     "admin.confirmDelete": "Haluatko varmasti poistaa tämän kuvan?",
     "admin.imageDeleted": "Kuva poistettu onnistuneesti",
     "admin.deleteError": "Kuvan poistaminen epäonnistui",
+    "admin.imageModel.gemini": "Gemini-kuvamalli (palvelimen asetus)",
+    "admin.pricing.title": "Hintaviite",
+    "admin.pricing.imageModel": "Nano Banana 2; oletusmalli kuvien luontiin ja muokkaukseen",
+    "admin.pricing.imageModelLite": "Nano Banana 2 Lite; nopeampi ja edullisempi 1K-malli",
+    "admin.pricing.textModel": "käytetään moderointiin, kuvauksiin ja ehdotuksiin",
+    "admin.pricing.note": "Hinnat ovat arvioita Gemini Developer API:n julkaistujen hintojen perusteella. Todelliset kustannukset voivat vaihdella.",
 
     // Admin - View & Filter
     "admin.filter.allPasswords": "Kaikki salasanat",
@@ -356,6 +362,12 @@ const translations: Record<Locale, Record<string, string>> = {
     "admin.confirmDelete": "Are you sure you want to delete this image?",
     "admin.imageDeleted": "Image deleted successfully",
     "admin.deleteError": "Failed to delete image",
+    "admin.imageModel.gemini": "Gemini image model (server configured)",
+    "admin.pricing.title": "Pricing Reference",
+    "admin.pricing.imageModel": "Nano Banana 2; the default for image generation and editing",
+    "admin.pricing.imageModelLite": "Nano Banana 2 Lite; faster and cheaper at 1K",
+    "admin.pricing.textModel": "used for moderation, descriptions, and suggestions",
+    "admin.pricing.note": "Prices are estimates based on published Gemini Developer API pricing. Actual costs may vary.",
 
     // Admin - View & Filter
     "admin.filter.allPasswords": "All passwords",

@@ -5,8 +5,7 @@
 ### Prerequisites
 
 - Docker and Docker Compose
-- Google Cloud project with billing and Vertex AI API enabled
-- Google Cloud Application Default Credentials or a service account
+- Gemini API key with billing enabled
 
 ### Setup Steps
 
@@ -23,42 +22,23 @@
    cp .env.example .env
    ```
 
-   Edit `.env` and add your Google Cloud project for Vertex AI:
+   Edit `.env` and add your Gemini API key and unique passwords:
 
    ```
-   GOOGLE_GENAI_USE_VERTEXAI=true
-   GOOGLE_CLOUD_PROJECT=your_gcp_project_id
-   GOOGLE_CLOUD_LOCATION=us-central1
-   GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+   GEMINI_API_KEY=your_gemini_api_key
+   GEMINI_IMAGE_MODEL=gemini-3.1-flash-image
+   MONGO_USERNAME=generative_imagining
+   MONGO_PASSWORD=your_database_password
    ADMIN_PASSWORD=your_admin_password
    ```
 
-3. **Authenticate with Google Cloud**
-
-   For local development:
-
-   ```bash
-   gcloud auth application-default login
-   gcloud config set project your_gcp_project_id
-   ```
-
-   For Docker or server deployments, provide a service account with Vertex AI permissions through `GOOGLE_APPLICATION_CREDENTIALS`.
-
-   This Docker Compose setup mounts `./secrets` into the backend container. Put your ADC or service account JSON here:
-
-   ```bash
-   mkdir -p secrets
-   cp ~/.config/gcloud/application_default_credentials.json secrets/application_default_credentials.json
-   chmod 600 secrets/application_default_credentials.json
-   ```
-
-4. **Start all services**
+3. **Start all services**
 
    ```bash
    docker compose up --build
    ```
 
-5. **Access the application**
+4. **Access the application**
    - **Frontend**: http://localhost:3337
    - **Backend API**: http://localhost:3338
    - **API Documentation**: http://localhost:3338/docs
@@ -72,7 +52,7 @@
 
 ### User Features
 
-- **Create Images**: Generate images from text prompts using Gemini 2.5 Flash Image on Vertex AI
+- **Create Images**: Generate images from text prompts using Gemini 3.1 Flash Image
 - **Edit Images**: AI-powered image editing with suggestions
 - **Gallery**: View and manage your generated images
 - **Mobile-First**: Optimized for mobile devices
@@ -103,13 +83,13 @@ npm run dev
 
 ## 🐛 Troubleshooting
 
-1. **Images not generating**: Check `GOOGLE_CLOUD_PROJECT`, Vertex AI API enablement, billing, and Google Cloud authentication
+1. **Images not generating**: Check that `GEMINI_API_KEY` is valid and that Gemini API billing and quota are available
 2. **Database connection issues**: Ensure MongoDB is running via Docker Compose
 3. **Frontend build issues**: Make sure all npm dependencies are installed
 
 ## 📝 Architecture
 
-- **Backend**: Python FastAPI with Gemini on Vertex AI integration
+- **Backend**: Python FastAPI with Gemini Developer API integration
 - **Frontend**: Next.js 16 with React 19 and Tailwind CSS
 - **Database**: MongoDB for user and image metadata
 - **Storage**: Local filesystem for image files
