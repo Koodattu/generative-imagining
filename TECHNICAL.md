@@ -44,8 +44,8 @@ This document provides detailed technical information about the Generative Imagi
 
 #### Backend
 
-- **Runtime**: Python 3.13+
-- **Framework**: FastAPI 0.141.1
+- **Runtime**: Python 3.15+
+- **Framework**: FastAPI 0.164.0
 - **Database**: MongoDB with PyMongo's async client
 - **AI Service**: Gemini 3.1 Flash Image through the Gemini Developer API
 - **Image Processing**: Pillow (PIL)
@@ -53,18 +53,18 @@ This document provides detailed technical information about the Generative Imagi
 
 #### Frontend
 
-- **Framework**: Next.js 16.0.1 (App Router)
-- **Language**: TypeScript 5
-- **UI Library**: React 19.0.0
-- **Styling**: Tailwind CSS 4.0.0
-- **HTTP Client**: Axios 1.7.9
+- **Framework**: Next.js 16.4.6 (App Router)
+- **Language**: TypeScript 6
+- **UI Library**: React 19.3.1
+- **Styling**: Tailwind CSS 4.3.5
+- **HTTP Client**: Axios 1.21.1
 - **Icons**: Lucide React
 
 #### Infrastructure
 
 - **Containerization**: Docker & Docker Compose
 - **Image Storage**: Local filesystem
-- **Database**: MongoDB 5.0+
+- **Database**: MongoDB 7.0
 
 ---
 
@@ -114,11 +114,11 @@ The application is structured as a monolithic FastAPI service with the following
 ### Key Technologies & Libraries
 
 ```python
-fastapi==0.141.1          # Web framework
-pymongo==4.17.0           # MongoDB async client
-google-genai==1.75.0      # Google Gen AI SDK
-pillow==12.3.0            # Image processing
-python-dotenv==1.2.2      # Environment management
+fastapi==0.164.0          # Web framework
+pymongo==4.20.0           # MongoDB async client
+google-genai==3.5.0       # Google Gen AI SDK
+pillow==13.0.0            # Image processing
+python-dotenv==1.2.4      # Environment management
 ```
 
 ### AI Integration
@@ -128,6 +128,7 @@ python-dotenv==1.2.2      # Environment management
 ```python
 genai.Client(
     api_key=os.getenv("GEMINI_API_KEY"),
+    http_options=types.HttpOptions(api_version="v1beta"),
 )
 ```
 
@@ -897,7 +898,7 @@ Tracked in `password_usage` collection per GUID+password pair.
 **Services:**
 
 1. **MongoDB**
-   - Image: `mongo:7.0.39`
+   - Image: `mongo:7.0.48`
    - Port: `27017`
    - Volume: `mongo_data`
 
@@ -971,8 +972,8 @@ For production deployment:
 
 ### Prerequisites
 
-- Python 3.13+ with pip
-- Node.js 24 LTS with npm
+- Python 3.15+ with pip
+- Node.js 26 LTS with npm
 - MongoDB 7.0+
 - Docker & Docker Compose (optional)
 - Gemini API key with billing enabled
@@ -1038,7 +1039,7 @@ Frontend runs at `http://localhost:3000`
 **Option A: Docker**
 
 ```bash
-docker run -d -p 27017:27017 --name mongodb mongo:7.0.39
+docker run -d -p 27017:27017 --name mongodb mongo:7.0.48
 ```
 
 **Option B: Local Install**

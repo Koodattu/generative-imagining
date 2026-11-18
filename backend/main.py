@@ -68,7 +68,11 @@ token_usage_collection = db.token_usage
 if not GEMINI_API_KEY:
     raise RuntimeError("Set GEMINI_API_KEY to use the Gemini API.")
 
-genai_client = genai.Client(api_key=GEMINI_API_KEY)
+# Keep the API version used by the configured image models across SDK upgrades.
+genai_client = genai.Client(
+    api_key=GEMINI_API_KEY,
+    http_options=types.HttpOptions(api_version="v1beta"),
+)
 
 # Gemini models.
 GEMINI_TEXT_MODEL = "gemini-2.5-flash"

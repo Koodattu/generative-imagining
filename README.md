@@ -62,8 +62,8 @@ docker compose up -d --build
 
 **Prerequisites:**
 
-- Python 3.13+
-- Node.js 24 LTS
+- Python 3.15+
+- Node.js 26 LTS
 - MongoDB 7.0+
 - Gemini API key with billing enabled
 

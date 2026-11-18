@@ -1,8 +1,8 @@
 aiofiles==25.1.0
-fastapi==0.141.1
-google-genai==1.75.0
-pillow==12.3.0
-pymongo==4.17.0
-python-dotenv==1.2.2
-python-multipart==0.0.32
-uvicorn==0.52.1
+fastapi==0.164.0
+google-genai==3.5.0
+pillow==13.0.0
+pymongo==4.20.0
+python-dotenv==1.2.4
+python-multipart==0.0.34
+uvicorn==0.54.0
